@@ -17,6 +17,7 @@ import OBulkQueueManagement from './pages/staff/OBulkQueueManagement';
 import ODisplayBoard from './pages/board/ODisplayBoard';
 import './i18n';
 import { apiPath } from './config/api';
+import OTicketIssued from './pages/kiosk/OTicketIssued';
 
 // Layouts
 import MainLayout from './layouts/MainLayout';
@@ -61,7 +62,8 @@ const IssueTicketPage: React.FC = () => {
     <OIssueTicket 
       category={category} 
       onConfirm={async (data) => {
-        navigate('/kiosk');
+        const docNo = data?.queue?.docNo || localStorage.getItem('adaqueue_last_queue_docno');
+        navigate('/kiosk/ticket', { state: { docNo } });
       }} 
       onBack={() => navigate('/kiosk')} 
     />
@@ -82,6 +84,7 @@ const App: React.FC = () => {
             {/* Kiosk Routes (Usually running on separate machine, maybe public or protected by simple guard) */}
             <Route path="/kiosk" element={<WelcomePage />} />
             <Route path="/kiosk/issue" element={<IssueTicketPage />} />
+            <Route path="/kiosk/ticket" element={<OTicketIssued />} />
             
             {/* Customer Mobile Route */}
             <Route path="/q/:id" element={<OMobileQueueStatus />} />

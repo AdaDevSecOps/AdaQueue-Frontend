@@ -34,7 +34,6 @@ export const OIssueTicket: React.FC<IIssueTicketProps> = ({ category, onConfirm,
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [previewQueueNo, setPreviewQueueNo] = useState<string>('—');
 
   // Config State
   const [headerTitle, setHeaderTitle] = useState('AdaQueue');
@@ -92,36 +91,7 @@ export const OIssueTicket: React.FC<IIssueTicketProps> = ({ category, onConfirm,
     return () => clearInterval(timer);
   }, []);
 
-  useEffect(() => {
-    const fetchNext = async () => {
-      try {
-        const profileId = localStorage.getItem('adaqueue_selected_profile') || '';
-        const kioskCode = localStorage.getItem('adaqueue_kiosk_code') || 'KIOSK';
-        const agnCode = localStorage.getItem('adaqueue_agn_code') || 'AGN';
-        if (!profileId || !category) return;
-        const qs = new URLSearchParams({
-          agnCode,
-          profileCode: profileId,
-          displayCode: kioskCode,
-          name: category
-        }).toString();
-        const res = await fetch(apiPath(`/api/queue-sequence/preview?${qs}`));
-        if (res.ok) {
-          const data = await res.json();
-          // Use category from props for the prefix to keep it clean and consistent
-          const num = String(data?.number ?? 1).padStart(3,'0');
-          setPreviewQueueNo(`${category}-${num}`);
-        } else {
-          // Fallback label กรณี backend preview ล้มเหลว
-          setPreviewQueueNo(`${category}-001`);
-        }
-      } catch {
-        // Fallback label เมื่อเกิด error network
-        setPreviewQueueNo(`${category}-001`);
-      }
-    };
-    fetchNext();
-  }, [category]);
+  
 
   const handleSubmit = async () => {
     setLoading(true);
@@ -170,6 +140,15 @@ export const OIssueTicket: React.FC<IIssueTicketProps> = ({ category, onConfirm,
   const handleClear = () => {
     setPhone('');
   };
+  
+  const handleBackClick = () => {
+    try {
+      onBack();
+      localStorage.removeItem('adaqueue_kiosk_code');
+    } catch {
+      if (window.history.length > 1) window.history.back();
+    }
+  };
 
   // Format phone number with dashes
   const formattedPhone = phone.replace(/(\d{3})(\d{3})(\d{4})/, '$1 - $2 - $3');
@@ -181,6 +160,9 @@ export const OIssueTicket: React.FC<IIssueTicketProps> = ({ category, onConfirm,
       {/* Header */}
       <header className="px-8 py-6 flex justify-between items-center border-b border-gray-800 relative">
         <div className="flex items-center gap-3">
+          <button onClick={handleBackClick} className="p-2 bg-gray-800 rounded-lg hover:bg-gray-700 transition">
+            <span className="text-xl">←</span>
+          </button>
           <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center font-bold text-xl">A</div>
           <span className="font-bold text-xl tracking-wide">AdaQueue</span>
         </div>
@@ -190,21 +172,10 @@ export const OIssueTicket: React.FC<IIssueTicketProps> = ({ category, onConfirm,
             {headerTitle}
         </div>
 
-        <div className="text-gray-400 text-sm font-medium">
+        {/* <div className="text-gray-400 text-sm font-medium">
           Session ends in 54s <button className="ml-4 p-2 bg-gray-800 rounded-lg hover:bg-gray-700 transition"><span className="text-xl">⚙️</span></button>
-        </div>
+        </div> */}
       </header>
-
-      {/* Progress Bar */}
-      {/* <div className="px-8 py-8">
-        <div className="flex justify-between text-sm font-medium text-gray-400 mb-2">
-          <span>Step 2 of 3: Enter Details</span>
-          <span>66%</span>
-        </div>
-        <div className="w-full bg-gray-800 h-2 rounded-full overflow-hidden">
-          <div className="bg-blue-500 h-full w-2/3 rounded-full shadow-[0_0_10px_rgba(59,130,246,0.5)]"></div>
-        </div>
-      </div> */}
 
       {/* Main Content */}
       <div className="flex-1 px-8 py-6 pb-8 flex flex-col lg:flex-row gap-8 lg:gap-16 max-w-7xl mx-auto w-full">
@@ -215,7 +186,7 @@ export const OIssueTicket: React.FC<IIssueTicketProps> = ({ category, onConfirm,
           
           <div className="mb-8">
             <label className="flex items-center gap-2 text-gray-400 text-lg font-bold mb-3">
-              <span>📱</span> Phone Number (for SMS updates)
+              <span>📱</span> Phone Number
             </label>
             <div className="bg-gray-800/50 border border-blue-500/30 rounded-lg p-6 h-20 flex items-center shadow-inner">
                <span className="text-3xl font-mono tracking-widest text-white">
@@ -257,9 +228,24 @@ export const OIssueTicket: React.FC<IIssueTicketProps> = ({ category, onConfirm,
           </div>
         </div>
 
-        {/* Right Column: Preview & Action */}
+        {/* Right Column: Action */}
         <div className="w-full lg:w-[450px] flex flex-col">
-          
+      
+          <div className="bg-gray-800 rounded-3xl p-8 border border-gray-700 shadow-2xl">
+            <h3 className="text-2xl font-bold text-white mb-2">{categoryName}</h3>
+            <p className="text-gray-400 text-sm mb-6">
+              {currentTime.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })} | {currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+            </p>
+            <div className="bg-gray-900/50 rounded-xl p-4 flex items-center justify-between border border-gray-700">
+              <span className="text-sm font-bold text-gray-400 uppercase">Guests</span>
+              <div className="flex items-center gap-4">
+                <button onClick={() => setPax(Math.max(1, pax - 1))} className="w-8 h-8 rounded-lg bg-gray-700 hover:bg-gray-600 text-white font-bold">-</button>
+                <span className="text-xl font-bold text-white w-6 text-center">{pax}</span>
+                <button onClick={() => setPax(Math.min(20, pax + 1))} className="w-8 h-8 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold shadow-lg shadow-blue-900/20">+</button>
+              </div>
+            </div>
+          </div>
+
           {/* Action Button */}
           <button
             onClick={handleSubmit}
@@ -273,47 +259,12 @@ export const OIssueTicket: React.FC<IIssueTicketProps> = ({ category, onConfirm,
              )}
           </button>
 
-          {/* Ticket Preview Card */}
-          <div className="bg-gray-800 rounded-3xl p-1 border border-gray-700 shadow-2xl relative overflow-hidden">
-             {/* Card Content */}
-             <div className="bg-gray-800 rounded-[20px] p-8 text-center border border-gray-700/50 relative z-10">
-                <div className="uppercase text-xs font-bold text-gray-500 tracking-[0.2em] mb-2">Your Ticket Preview</div>
-                <div className="w-full border-t border-dashed border-gray-700 mb-8 opacity-50"></div>
-                
-                <div className="text-7xl font-bold text-blue-400 mb-2 drop-shadow-[0_0_15px_rgba(96,165,250,0.5)]">{previewQueueNo}</div>
-                
-                <h3 className="text-2xl font-bold text-white mb-2">{categoryName}</h3>
-                <p className="text-gray-400 text-sm mb-8">
-                  {currentTime.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })} | {currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
-                </p>
-
-                {/* QR Code Placeholder */}
-                <div className="w-32 h-32 bg-white rounded-xl mx-auto mb-4 flex items-center justify-center p-2">
-                  <div className="w-full h-full border-4 border-black border-dashed opacity-20"></div>
-                </div>
-                <p className="text-xs text-gray-500 mb-6">Scan on your phone to track status</p>
-
-                {/* Guest Counter (Integrated) */}
-                <div className="bg-gray-900/50 rounded-xl p-4 mb-2 flex items-center justify-between border border-gray-700">
-                   <span className="text-sm font-bold text-gray-400 uppercase">Guests</span>
-                   <div className="flex items-center gap-4">
-                      <button onClick={() => setPax(Math.max(1, pax - 1))} className="w-8 h-8 rounded-lg bg-gray-700 hover:bg-gray-600 text-white font-bold">-</button>
-                      <span className="text-xl font-bold text-white w-6 text-center">{pax}</span>
-                      <button onClick={() => setPax(Math.min(20, pax + 1))} className="w-8 h-8 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold shadow-lg shadow-blue-900/20">+</button>
-                   </div>
-                </div>
-             </div>
-             
-             {/* Decorative Elements */}
-             <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500"></div>
-          </div>
-
           {/* Back Link */}
           <button 
-            onClick={onBack}
+            onClick={handleBackClick}
             className="mt-6 text-gray-500 hover:text-white font-medium transition-colors text-center"
           >
-            Go Back
+            ย้อนกลับ
           </button>
 
           {/* Info Box */}
