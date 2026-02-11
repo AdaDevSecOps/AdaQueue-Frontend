@@ -196,7 +196,7 @@ export const OIssueTicket: React.FC<IIssueTicketProps> = ({ category, onConfirm,
       </header>
 
       {/* Progress Bar */}
-      <div className="px-8 py-8">
+      {/* <div className="px-8 py-8">
         <div className="flex justify-between text-sm font-medium text-gray-400 mb-2">
           <span>Step 2 of 3: Enter Details</span>
           <span>66%</span>
@@ -204,18 +204,17 @@ export const OIssueTicket: React.FC<IIssueTicketProps> = ({ category, onConfirm,
         <div className="w-full bg-gray-800 h-2 rounded-full overflow-hidden">
           <div className="bg-blue-500 h-full w-2/3 rounded-full shadow-[0_0_10px_rgba(59,130,246,0.5)]"></div>
         </div>
-        {/* REMOVED Selected Category from here as requested to be moved/replaced by Header Title */}
-      </div>
+      </div> */}
 
       {/* Main Content */}
-      <div className="flex-1 px-8 pb-8 flex flex-col lg:flex-row gap-8 lg:gap-16 max-w-7xl mx-auto w-full">
+      <div className="flex-1 px-8 py-6 pb-8 flex flex-col lg:flex-row gap-8 lg:gap-16 max-w-7xl mx-auto w-full">
         
         {/* Left Column: Input */}
         <div className="flex-1 flex flex-col">
           <h1 className="text-4xl font-bold mb-8">Just a few more details...</h1>
           
           <div className="mb-8">
-            <label className="flex items-center gap-2 text-gray-400 text-sm font-bold mb-3">
+            <label className="flex items-center gap-2 text-gray-400 text-lg font-bold mb-3">
               <span>📱</span> Phone Number (for SMS updates)
             </label>
             <div className="bg-gray-800/50 border border-blue-500/30 rounded-lg p-6 h-20 flex items-center shadow-inner">
@@ -261,6 +260,19 @@ export const OIssueTicket: React.FC<IIssueTicketProps> = ({ category, onConfirm,
         {/* Right Column: Preview & Action */}
         <div className="w-full lg:w-[450px] flex flex-col">
           
+          {/* Action Button */}
+          <button
+            onClick={handleSubmit}
+            disabled={loading}
+            className="mb-8 w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-400 hover:to-blue-500 text-white text-xl font-bold py-6 rounded-2xl shadow-xl shadow-blue-900/30 transform transition-all hover:-translate-y-1 active:scale-95 flex items-center justify-center gap-3"
+          >
+             {loading ? 'Processing...' : (
+               <>
+                 <span className="text-2xl">✅</span> Confirm Ticket
+               </>
+             )}
+          </button>
+
           {/* Ticket Preview Card */}
           <div className="bg-gray-800 rounded-3xl p-1 border border-gray-700 shadow-2xl relative overflow-hidden">
              {/* Card Content */}
@@ -295,19 +307,6 @@ export const OIssueTicket: React.FC<IIssueTicketProps> = ({ category, onConfirm,
              {/* Decorative Elements */}
              <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500"></div>
           </div>
-
-          {/* Action Button */}
-          <button
-            onClick={handleSubmit}
-            disabled={loading}
-            className="mt-8 w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-400 hover:to-blue-500 text-white text-xl font-bold py-6 rounded-2xl shadow-xl shadow-blue-900/30 transform transition-all hover:-translate-y-1 active:scale-95 flex items-center justify-center gap-3"
-          >
-             {loading ? 'Processing...' : (
-               <>
-                 <span className="text-2xl">✅</span> Confirm Ticket
-               </>
-             )}
-          </button>
 
           {/* Back Link */}
           <button 
