@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Monitor, Server, ArrowRight, CheckCircle2, User, LogOut, LayoutGrid, AlertTriangle } from 'lucide-react';
+import { Monitor, Server, ArrowRight, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { apiPath } from '../../config/api';
 
 
@@ -59,10 +59,7 @@ interface IProfileOption {
  */
 const OStaffOperations: React.FC = () => {
   // State
-  const [currentQueue, setCurrentQueue] = useState({ number: 'A-101', channel: 'Mobile', service: 'Emergency', status: 'CALLING', group: 'Q-ER-03' });
-  const [isOnline, setIsOnline] = useState(true);
-  const [selectedZone, setSelectedZone] = useState('Main Zone A');
-  // const [selectedCounter, setSelectedCounter] = useState('Counter 01'); // Replaced by selectedPointCode
+  const [currentQueue] = useState({ number: 'A-101', channel: 'Mobile', service: 'Emergency', status: 'CALLING', group: 'Q-ER-03' });
   const [selectedServiceGroup, setSelectedServiceGroup] = useState('ALL');
   
   // Workflow State
@@ -206,7 +203,7 @@ const OStaffOperations: React.FC = () => {
       } catch {}
     };
     if (startupStep === 'ready') fetchQueues();
-  }, [startupStep, selectedProfile]);
+  }, [startupStep, selectedProfile, workflow?.serviceGroups]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleResetConfig = () => {
       if (window.confirm('Change working station? This will reset your current session.')) {
