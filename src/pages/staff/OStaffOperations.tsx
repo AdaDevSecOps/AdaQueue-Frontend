@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Monitor, Server, ArrowRight, CheckCircle2, User, LogOut, LayoutGrid, AlertTriangle } from 'lucide-react';
 import { apiPath } from '../../config/api';
+import { io, Socket } from 'socket.io-client';
 
 
 interface ITransition {
@@ -208,15 +209,57 @@ const OStaffOperations: React.FC = () => {
     if (startupStep === 'ready') fetchQueues();
   }, [startupStep, selectedProfile]);
 
+  useEffect(() => {
+    if (startupStep !== 'ready' || !selectedProfile?.code) return;
+    const base = (process.env.REACT_APP_API_BASE || '').trim();
+    const url = base && base.startsWith('http') ? base.replace(/\/+$/, '') : window.location.origin;
+    const socket: Socket = io(`${url}/ws`, { path: '/socket.io', transports: ['websocket'], autoConnect: true, withCredentials: false, reconnection: true });
+    
+    const handler = (evt: any) => {
+      const q = evt?.queue;
+      const pid = q?.data?.profileId || q?.profileCode;
+      if (pid && pid === selectedProfile.code) {
+        // Simple strategy: refresh list on relevant events
+        (async () => {
+          try {
+            const res = await fetch(apiPath(`/api/queue/profile/${selectedProfile.code}`));
+            if (res.ok) {
+              const data = await res.json();
+              const mapped = data.map((qq: any) => {
+                const qData = qq.data || (qq.dataString ? JSON.parse(qq.dataString) : {});
+                const groupCode = qData.serviceGroup || qData.queueType || 'General';
+                const groupName = workflow?.serviceGroups?.find(g => g.code === groupCode)?.name || groupCode || 'General';
+                return {
+                  no: groupCode !== 'General' ? `${groupCode}-${String(qq.queueNo).padStart(3,'0')}` : String(qq.queueNo).padStart(3,'0'),
+                  channel: 'Walk-in',
+                  priority: 'Standard',
+                  timer: '—',
+                  isExpired: false,
+                  service: groupName,
+                  group: groupCode,
+                  state: qq.status,
+                  created: new Date(qq.checkInTime || Date.now()).getTime()
+                };
+              });
+              setQueueList(mapped);
+            }
+          } catch {}
+        })();
+      }
+    };
+
+    socket.on('queue:update', handler);
+
+    return () => {
+      socket.off('queue:update', handler);
+      socket.disconnect();
+    };
+  }, [startupStep, selectedProfile, workflow]);
+
   const handleResetConfig = () => {
       if (window.confirm('Change working station? This will reset your current session.')) {
           localStorage.removeItem('staff_point_code');
-          // Optionally remove profile if they want to switch branch
-          // localStorage.removeItem('staff_profile_code'); 
           setStartupStep('select_point');
-          
-          // If they want to switch profile too, we might need a "Switch Profile" button specifically
-          // For now, let's assume this resets to point selection
       }
   };
 
@@ -345,13 +388,6 @@ const OStaffOperations: React.FC = () => {
     { code: 'Q-ER-03', name: 'Emergency ER' }
   ];
 
-  // Mock Data: Upcoming Queue (Enhanced with 'created' for FIFO sorting)
-  // Using Hospital Profile States: WAIT_QUEUE, VITAL_SIGNS, CONSULTATION, PHARMACY
-  // const upcomingQueues = [
-  //   { no: 'A-101', channel: 'Mobile', priority: 'URGENT', timer: '00:30', isExpired: false, service: 'Emergency', group: 'Q-ER-03', state: 'WAIT_QUEUE', created: 1700000000000 },
-  //   ...
-  // ];
-
   // Filter queues based on selected service group AND selected service point focus states
   const filteredQueues = (() => {
       let result = queueList; // Use Real Data
@@ -404,7 +440,7 @@ const OStaffOperations: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-full bg-gray-50 dark:bg-gray-900 font-sans transition-colors duration-200">
+    <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900 font-sans transition-colors duration-200">
       
       {/* Top Bar: Operations Breadcrumb & Controls */}
       <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4 flex flex-col md:flex-row justify-between items-center gap-4 shrink-0">
@@ -470,7 +506,7 @@ const OStaffOperations: React.FC = () => {
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 overflow-hidden p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="flex-1 overflow-y-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
         
         {/* Left Panel: Upcoming Queue List */}
         <div className="lg:col-span-5 flex flex-col bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
