@@ -199,6 +199,7 @@ const OStaffOperations: React.FC = () => {
               service: groupName, // Display Name (User Request: Show Name)
               group: groupCode,   // Filter Code (User Request: Keep Code for logic)
               state: q.status,
+              ticketNo: q.ticketNo,
               created: new Date(q.checkInTime || Date.now()).getTime()
             };
           });
@@ -238,6 +239,7 @@ const OStaffOperations: React.FC = () => {
                   service: groupName,
                   group: groupCode,
                   state: qq.status,
+                  ticketNo: qq.ticketNo,
                   created: new Date(qq.checkInTime || Date.now()).getTime()
                 };
               });
@@ -536,7 +538,7 @@ const OStaffOperations: React.FC = () => {
               <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                 {filteredQueues.map((queue, idx) => (
                   <tr key={idx} className="hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors group">
-                    <td className="px-4 py-4 font-bold text-gray-900 dark:text-white">{queue.no}</td>
+                    <td className="px-4 py-4 font-bold text-gray-900 dark:text-white">{queue.ticketNo || queue.no}</td>
                     <td className="px-4 py-4 text-sm text-gray-600 dark:text-gray-300 flex items-center">
                       {getChannelIcon(queue.channel)} {queue.channel}
                     </td>

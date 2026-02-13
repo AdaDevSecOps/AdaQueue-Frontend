@@ -106,8 +106,11 @@ export const OIssueTicket: React.FC<IIssueTicketProps> = ({ category, onConfirm,
         agnCode,
         profileId,
         attributes: { pax, category, serviceGroup: category, queueType: category, kioskCode },
+        bchCode: '00002',
+        preFix: 'W',
+        customerType: '00001',
       };
-      const res = await fetch(apiPath('/api/queue'), {
+      const res = await fetch(apiPath('/api/queue/gen'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),

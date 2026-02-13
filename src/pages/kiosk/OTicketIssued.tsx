@@ -39,7 +39,8 @@ const OTicketIssued: React.FC = () => {
   const label = () => {
     if (!queue) return '';
     const type = queue.data?.queueType || queue.queueType || 'Q';
-    return `${type}-${padded(queue.queueNo)}`;
+    // return `${type}-${queue.ticketNo}`;
+    return `${queue.ticketNo}`;
   };
 
   return (
