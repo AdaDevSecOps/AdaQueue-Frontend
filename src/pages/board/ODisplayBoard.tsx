@@ -124,8 +124,15 @@ const ODisplayBoard: React.FC = () => {
                     queueNo: label,
                     status: q.status,
                     serviceGroup: serviceGroup,
+                    refType: q.refType || '',
+                    checkInTime: q.checkInTime || new Date().toISOString(),
                     counter: embedded.counter ?? '-'
                   };
+                });
+                
+                // Sort by checkInTime
+                mapped.sort((a: any, b: any) => {
+                    return new Date(a.checkInTime).getTime() - new Date(b.checkInTime).getTime();
                 });
                 console.log('✅ SUCCESS: Mapped', mapped.length, 'queues');
                 console.log('📊 Service Group Distribution:', 
@@ -366,7 +373,7 @@ const ODisplayBoard: React.FC = () => {
           );
       }
 
-      // Multi Service Group Mode: Display by service groups
+      // Multi Service Group Mode: Display 3 fixed columns
       return (
         <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 p-2">
              {/* Hidden Reset Button (Top Left corner hover) */}
@@ -379,32 +386,34 @@ const ODisplayBoard: React.FC = () => {
                 </button>
              </div>
 
-             {/* Dynamic Horizontal Layout - Full width, equal columns */}
+             {/* Three Fixed Columns */}
              <div className="flex gap-2 h-full">
-                 {/* Waiting Queue Column - Show only queues with empty queueType */}
+                 {/* Column 1: Waiting Queue - All queues, all queueTypes (including "") */}
                  <OQueueBoard 
-                     queues={queues.filter(q => 
-                         !q.serviceGroup || q.serviceGroup === '' || q.serviceGroup === 'General'
-                     )} 
+                     queues={queues}
                      leftTitle="Waiting Queue"
                      title="Waiting Queue"
                  />
 
-                 {/* Service Group Columns (One column per visible group) */}
-                 {visibleGroupCodes.map(groupCode => {
-                     // Filter all queues for this specific service group (not just waiting)
-                     const groupQueues = queues.filter(q => q.serviceGroup === groupCode);
-                     const groupName = getServiceGroupName(groupCode);
-                     
-                     return (
-                         <OQueueBoard 
-                             key={groupCode}
-                             queues={groupQueues}
-                             leftTitle={groupName}
-                             title={groupName}
-                         />
-                     );
-                 })}
+                 {/* Column 2: คิวที่ทำ - Queues with status !== "WAITING" */}
+                 <OQueueBoard 
+                     queues={queues.filter(q => q.status !== 'WAITING')}
+                     leftTitle="คิวที่กำลังดำเนินการ"
+                     title="คิวที่กำลังดำเนินการ"
+                 />
+
+                 {/* Column 3: ช่องบริการ - Show refType as service group name */}
+                 <OQueueBoard 
+                     queues={queues
+                         .filter(q => q.refType && q.refType !== '') // Only queues with refType
+                         .map(q => ({
+                             ...q,
+                             queueNo: getServiceGroupName(q.refType) // Show service group name instead of queue number
+                         }))
+                     }
+                     leftTitle="ช่องบริการ"
+                     title="ช่องบริการ"
+                 />
              </div>
         </div>
       );

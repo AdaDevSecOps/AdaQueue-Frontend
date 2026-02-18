@@ -81,22 +81,14 @@ const OQueueBoard: React.FC<IOQueueBoardProps> = ({ queues, title, leftTitle }) 
                <span className="text-base md:text-lg">No queues waiting</span>
              </div>
           ) : (
-            <div className={`grid ${groups.length > 1 ? 'grid-cols-2 gap-2' : 'grid-cols-1 gap-2'}`}>
-                {groups.map(groupCode => (
-                    <div key={groupCode} className="flex flex-col gap-1.5">
-                        {groups.length > 1 && (
-                            <h3 className="font-bold text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-0.5 border-b border-gray-200 dark:border-gray-700 pb-0.5">
-                                {getGroupName(groupCode)}
-                            </h3>
-                        )}
-                        {waiting.filter(q => (q.serviceGroup || 'General') === groupCode).map(q => (
-                            <div key={q.docNo} className="flex justify-between items-center p-2 md:p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-blue-400 dark:hover:border-blue-500 hover:shadow-md transition-all duration-200">
-                                <span className="text-lg md:text-2xl font-bold text-gray-800 dark:text-white tracking-wider">{q.queueNo}</span>
-                                <span className={`px-1.5 py-0.5 rounded text-[9px] md:text-[10px] font-medium tracking-wide ${q.status === 'WAIT_PHARMACY' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'}`}>
-                                    {getWaitingLabel(q.status)}
-                                </span>
-                            </div>
-                        ))}
+            <div className="flex flex-col gap-1.5">
+                {/* Show all queues in single vertical column, no grouping */}
+                {waiting.map(q => (
+                    <div key={q.docNo} className="flex justify-between items-center p-2 md:p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-blue-400 dark:hover:border-blue-500 hover:shadow-md transition-all duration-200">
+                        <span className="text-lg md:text-2xl font-bold text-gray-800 dark:text-white tracking-wider">{q.queueNo}</span>
+                        <span className={`px-1.5 py-0.5 rounded text-[9px] md:text-[10px] font-medium tracking-wide ${q.status === 'WAIT_PHARMACY' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'}`}>
+                            {getWaitingLabel(q.status)}
+                        </span>
                     </div>
                 ))}
             </div>
