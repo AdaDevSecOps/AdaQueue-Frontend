@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Monitor, Server, ArrowRight, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { apiPath } from '../../config/api';
 import { io, Socket } from 'socket.io-client';
@@ -252,98 +252,76 @@ const OStaffOperations: React.FC = () => {
       setStartupStep('ready');
   };
 
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-
-    const fetchQueues = async () => {
-      try {
-        const profileCode = localStorage.getItem('staff_profile_code') || selectedProfile?.code;
-        if (!profileCode) return;
-        
-        const url = apiPath(`/api/queue/profile/${profileCode}`);
-        const startTime = performance.now();
-        
-        console.groupCollapsed(`🟢 GET ${url}`);
-        console.log('📤 REQUEST:', {
-            method: 'GET',
-            url: url,
-            params: { profileCode },
-            timestamp: new Date().toISOString()
+  const fetchQueues = useCallback(async () => {
+    try {
+      const profileCode = localStorage.getItem('staff_profile_code') || selectedProfile?.code;
+      if (!profileCode) return;
+      const url = apiPath(`/api/queue/profile/${profileCode}`);
+      const startTime = performance.now();
+      console.groupCollapsed(`🟢 GET ${url}`);
+      console.log('📤 REQUEST:', {
+        method: 'GET',
+        url: url,
+        params: { profileCode },
+        timestamp: new Date().toISOString()
+      });
+      const res = await fetch(url);
+      const duration = Math.round(performance.now() - startTime);
+      console.log('📥 RESPONSE:', {
+        status: res.status,
+        statusText: res.statusText,
+        ok: res.ok,
+        duration: `${duration}ms`,
+        headers: { 'content-type': res.headers.get('content-type') }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        console.log('📦 RESPONSE DATA:', data);
+        const mapped = data.map((q: any) => {
+          const qData = q.data || (q.dataString ? JSON.parse(q.dataString) : {});
+          const groupCode = qData.serviceGroup || qData.queueType || 'General';
+          const groupName = workflow?.serviceGroups?.find(g => g.code === groupCode)?.name || groupCode || 'General';
+          return {
+            no: q.docNo || `${groupCode}-${String(q.queueNo).padStart(3,'0')}`,
+            docNo: q.docNo,
+            queueNo: q.queueNo,
+            channel: 'Walk-in',
+            status: q.status || 'WAITING',
+            timer: '—',
+            isExpired: false,
+            service: groupName,
+            group: groupCode,
+            state: q.status || 'WAITING',
+            ticketNo: q.ticketNo,
+            created: new Date(q.checkInTime || Date.now()).getTime()
+          };
         });
-
-        const res = await fetch(url);
-        const duration = Math.round(performance.now() - startTime);
-        
-        console.log('📥 RESPONSE:', {
-            status: res.status,
-            statusText: res.statusText,
-            ok: res.ok,
-            duration: `${duration}ms`,
-            headers: {
-                'content-type': res.headers.get('content-type')
-            }
-        });
-
-        if (res.ok) {
-          const data = await res.json();
-          console.log('📦 RESPONSE DATA:', data);
-
-          const mapped = data.map((q: any) => {
-            const qData = q.data || (q.dataString ? JSON.parse(q.dataString) : {});
-            const groupCode = qData.serviceGroup || qData.queueType || 'General';
-            const groupName = workflow?.serviceGroups?.find(g => g.code === groupCode)?.name || groupCode || 'General';
-            
-            return {
-              no: q.docNo || `${groupCode}-${String(q.queueNo).padStart(3,'0')}`, // Use docNo from API
-              docNo: q.docNo, // Store original docNo for selection
-              queueNo: q.queueNo, // Store original queueNo
-              channel: 'Walk-in',
-              status: q.status || 'WAITING', // Use status from API, default to 'WAITING'
-              timer: '—',
-              isExpired: false,
-              service: groupName, // Display Name (User Request: Show Name)
-              group: groupCode,   // Filter Code (User Request: Keep Code for logic)
-              state: q.status || 'WAITING', // Keep state for filtering
-              ticketNo: q.ticketNo,
-              created: new Date(q.checkInTime || Date.now()).getTime()
-            };
-          });
-          
-          console.log('✅ SUCCESS: Mapped', mapped.length, 'queues');
-          console.log('📊 Service Group Distribution:', 
-              mapped.reduce((acc: any, q: any) => {
-                  acc[q.group] = (acc[q.group] || 0) + 1;
-                  return acc;
-              }, {})
-          );
-          console.log('📊 State Distribution:', 
-              mapped.reduce((acc: any, q: any) => {
-                  acc[q.state] = (acc[q.state] || 0) + 1;
-                  return acc;
-              }, {})
-          );
-          console.groupEnd();
-          
-          setQueueList(mapped);
-        } else {
-            console.error('❌ FAILED:', res.status, res.statusText);
-            console.groupEnd();
-        }
-      } catch (e) {
-        console.error('❌ ERROR:', e);
+        console.log('✅ SUCCESS: Mapped', mapped.length, 'queues');
+        console.log('📊 Service Group Distribution:', mapped.reduce((acc: any, q: any) => {
+          acc[q.group] = (acc[q.group] || 0) + 1;
+          return acc;
+        }, {}));
+        console.log('📊 State Distribution:', mapped.reduce((acc: any, q: any) => {
+          acc[q.state] = (acc[q.state] || 0) + 1;
+          return acc;
+        }, {}));
+        console.groupEnd();
+        setQueueList(mapped);
+      } else {
+        console.error('❌ FAILED:', res.status, res.statusText);
         console.groupEnd();
       }
-    };
-    
-    if (startupStep === 'ready') {
-        fetchQueues();
-        interval = setInterval(fetchQueues, 5000); // Refresh every 5 seconds
+    } catch (e) {
+      console.error('❌ ERROR:', e);
+      console.groupEnd();
     }
+  }, [selectedProfile?.code, workflow?.serviceGroups]);
 
-    return () => {
-        if (interval) clearInterval(interval);
-    };
-  }, [startupStep, selectedProfile, workflow?.serviceGroups]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (startupStep === 'ready') {
+      fetchQueues();
+    }
+  }, [startupStep, fetchQueues]);
 
   useEffect(() => {
     if (startupStep !== 'ready' || !selectedProfile?.code) return;
@@ -355,33 +333,7 @@ const OStaffOperations: React.FC = () => {
       const q = evt?.queue;
       const pid = q?.data?.profileId || q?.profileCode;
       if (pid && pid === selectedProfile.code) {
-        // Simple strategy: refresh list on relevant events
-        (async () => {
-          try {
-            const res = await fetch(apiPath(`/api/queue/profile/${selectedProfile.code}`));
-            if (res.ok) {
-              const data = await res.json();
-              const mapped = data.map((qq: any) => {
-                const qData = qq.data || (qq.dataString ? JSON.parse(qq.dataString) : {});
-                const groupCode = qData.serviceGroup || qData.queueType || 'General';
-                const groupName = workflow?.serviceGroups?.find(g => g.code === groupCode)?.name || groupCode || 'General';
-                return {
-                  no: groupCode !== 'General' ? `${groupCode}-${String(qq.queueNo).padStart(3,'0')}` : String(qq.queueNo).padStart(3,'0'),
-                  channel: 'Walk-in',
-                  priority: 'Standard',
-                  timer: '—',
-                  isExpired: false,
-                  service: groupName,
-                  group: groupCode,
-                  state: qq.status,
-                  ticketNo: qq.ticketNo,
-                  created: new Date(qq.checkInTime || Date.now()).getTime()
-                };
-              });
-              setQueueList(mapped);
-            }
-          } catch {}
-        })();
+        fetchQueues();
       }
     };
 
@@ -391,7 +343,7 @@ const OStaffOperations: React.FC = () => {
       socket.off('queue:update', handler);
       socket.disconnect();
     };
-  }, [startupStep, selectedProfile, workflow]);
+  }, [startupStep, selectedProfile, fetchQueues]);
 
   const handleResetConfig = () => {
       if (window.confirm('Change working station? This will reset your current session.')) {
@@ -496,8 +448,8 @@ const OStaffOperations: React.FC = () => {
           setSelectedQueueDocNo(null);
         }
         
-        // Refresh queue list
-        // The useEffect will automatically refresh the queue list
+        // Refresh queue list (no polling; ensure UI reflects CALLING status)
+        try { await fetchQueues(); } catch {}
       } else {
         const errorData = await res.json().catch(() => null);
         console.error('❌ FAILED:', res.status, res.statusText);
@@ -864,7 +816,7 @@ const OStaffOperations: React.FC = () => {
               {currentQueue ? (
                 <>
                   <p className="text-gray-500 dark:text-gray-400 font-medium mb-2">Customer Ticket Number</p>
-                  <h1 className="text-8xl font-black text-gray-900 dark:text-white tracking-tight mb-6">{currentQueue.number}</h1>
+                  <h1 className="text-6xl font-black text-gray-900 dark:text-white tracking-tight mb-6">{currentQueue.number}</h1>
                   
                   <div className="flex gap-3 flex-wrap justify-center">
                     <span className="px-3 py-1 bg-gray-100 dark:bg-gray-700 rounded-lg text-sm text-gray-600 dark:text-gray-300 font-medium">
@@ -873,11 +825,11 @@ const OStaffOperations: React.FC = () => {
                     <span className="px-3 py-1 bg-gray-100 dark:bg-gray-700 rounded-lg text-sm text-gray-600 dark:text-gray-300 font-medium">
                       Service: {currentQueue.service}
                     </span>
-                    {currentQueue.customerName && (
+                    {/* {currentQueue.customerName && (
                       <span className="px-3 py-1 bg-blue-100 dark:bg-blue-700 rounded-lg text-sm text-blue-600 dark:text-blue-300 font-medium">
                         {currentQueue.customerName}
                       </span>
-                    )}
+                    )} */}
                   </div>
                 </>
               ) : (

@@ -253,7 +253,7 @@ export const OIssueTicket: React.FC<IIssueTicketProps> = ({ category, onConfirm,
           <button
             onClick={handleSubmit}
             disabled={loading}
-            className="mb-8 w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-400 hover:to-blue-500 text-white text-xl font-bold py-6 rounded-2xl shadow-xl shadow-blue-900/30 transform transition-all hover:-translate-y-1 active:scale-95 flex items-center justify-center gap-3"
+            className="mt-8 w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-400 hover:to-blue-500 text-white text-xl font-bold py-6 rounded-2xl shadow-xl shadow-blue-900/30 transform transition-all hover:-translate-y-1 active:scale-95 flex items-center justify-center gap-3"
           >
              {loading ? 'Processing...' : (
                <>
