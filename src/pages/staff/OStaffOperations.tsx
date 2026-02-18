@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Monitor, Server, ArrowRight, CheckCircle2, User, LogOut, LayoutGrid, AlertTriangle } from 'lucide-react';
+import { Monitor, Server, ArrowRight, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { apiPath } from '../../config/api';
 
 
@@ -59,11 +59,9 @@ interface IProfileOption {
  */
 const OStaffOperations: React.FC = () => {
   // State
-  const [currentQueue, setCurrentQueue] = useState({ number: 'A-101', channel: 'Mobile', service: 'Emergency', status: 'CALLING', group: 'Q-ER-03' });
-  const [isOnline, setIsOnline] = useState(true);
-  const [selectedZone, setSelectedZone] = useState('Main Zone A');
-  // const [selectedCounter, setSelectedCounter] = useState('Counter 01'); // Replaced by selectedPointCode
+  const [currentQueue, setCurrentQueue] = useState<any | null>(null);
   const [selectedServiceGroup, setSelectedServiceGroup] = useState('ALL');
+  const [selectedQueueDocNo, setSelectedQueueDocNo] = useState<string | null>(null);
   
   // Workflow State
   const [workflow, setWorkflow] = useState<IWorkflowDefinition | null>(null);
@@ -105,28 +103,88 @@ const OStaffOperations: React.FC = () => {
   // --- Mock Helpers ---
   // In real app, these would be API calls
   const loadProfiles = async (): Promise<IProfileOption[]> => {
-    // Try to fetch from backend
+    const url = apiPath('/api/profile');
+    const startTime = performance.now();
+    
+    console.groupCollapsed(`🔵 GET ${url}`);
+    console.log('📤 REQUEST:', {
+        method: 'GET',
+        url: url,
+        timestamp: new Date().toISOString()
+    });
+    
     try {
-        const res = await fetch(apiPath('/api/profile'));
+        const res = await fetch(url);
+        const duration = Math.round(performance.now() - startTime);
+        const contentType = res.headers.get("content-type");
+        
+        console.log('📥 RESPONSE:', {
+            status: res.status,
+            statusText: res.statusText,
+            ok: res.ok,
+            duration: `${duration}ms`,
+            headers: {
+                'content-type': contentType
+            }
+        });
+
         if (res.ok) {
-            const data = await res.json();
-            return data.map((p: any) => ({
-                code: p.code,
-                name: p.name,
-                description: p.name
-            }));
+            if (contentType && contentType.indexOf("application/json") !== -1) {
+                const data = await res.json();
+                console.log('📦 RESPONSE DATA:', data);
+
+                const profiles = data.map((p: any) => ({
+                    code: p.code,
+                    name: p.name,
+                    description: p.name
+                }));
+                console.log('✅ SUCCESS: Loaded', profiles.length, 'profiles');
+                console.groupEnd();
+                return profiles;
+            } else {
+                console.error("❌ FAILED: Received non-JSON response");
+                console.groupEnd();
+            }
+        } else {
+            console.error(`❌ FAILED: ${res.status} ${res.statusText}`);
+            console.groupEnd();
         }
     } catch (e) {
-        console.warn('Backend fetch failed', e);
+        console.error('❌ ERROR:', e);
+        console.groupEnd();
     }
     return [];
   };
 
   const loadWorkflowForProfile = async (profileCode: string): Promise<IWorkflowDefinition | null> => {
+      const url = apiPath(`/api/workflow-designer/${profileCode}`);
+      const startTime = performance.now();
+      
+      console.groupCollapsed(`🟣 GET ${url}`);
+      console.log('📤 REQUEST:', {
+          method: 'GET',
+          url: url,
+          params: { profileCode },
+          timestamp: new Date().toISOString()
+      });
+      
       try {
-            const res = await fetch(apiPath(`/api/workflow-designer/${profileCode}`));
+            const res = await fetch(url);
+            const duration = Math.round(performance.now() - startTime);
+            
+            console.log('📥 RESPONSE:', {
+                status: res.status,
+                statusText: res.statusText,
+                ok: res.ok,
+                duration: `${duration}ms`,
+                headers: {
+                    'content-type': res.headers.get('content-type')
+                }
+            });
+
             if (res.ok) {
                 const data = await res.json();
+                console.log('📦 RESPONSE DATA:', data);
                 
                 // Transform backend data to frontend model if needed
                 // Backend: servicePoints, kiosks, etc inside 'config'
@@ -141,7 +199,7 @@ const OStaffOperations: React.FC = () => {
                     'COMPLETED': { code: 'COMPLETED', label: 'Completed', type: 'FINAL', transitions: [] }
                 };
 
-                return {
+                const workflow = {
                     profileCode: profileCode,
                     profileName: data.profileName,
                     industry: data.industry || 'General',
@@ -150,9 +208,26 @@ const OStaffOperations: React.FC = () => {
                     serviceGroups: data.serviceGroups || [],
                     servicePoints: data.servicePoints || []
                 };
+                
+                console.log('📊 SUMMARY:', {
+                    profileCode: workflow.profileCode,
+                    profileName: workflow.profileName,
+                    serviceGroups: workflow.serviceGroups.length,
+                    servicePoints: workflow.servicePoints.length,
+                    states: Object.keys(workflow.states).length
+                });
+                console.log('✅ SUCCESS: Workflow loaded');
+                console.groupEnd();
+                
+                return workflow;
+            } else {
+                console.error('❌ FAILED:', res.status, res.statusText);
+                console.groupEnd();
+                setError("Failed to load workflow configuration.");
             }
        } catch (apiErr) {
-           console.warn("API Workflow fetch failed", apiErr);
+           console.error('❌ ERROR:', apiErr);
+           console.groupEnd();
            setError("Failed to load workflow configuration.");
        }
        return null;
@@ -177,36 +252,96 @@ const OStaffOperations: React.FC = () => {
   };
 
   useEffect(() => {
+    let interval: NodeJS.Timeout;
+
     const fetchQueues = async () => {
       try {
         const profileCode = localStorage.getItem('staff_profile_code') || selectedProfile?.code;
         if (!profileCode) return;
-        const res = await fetch(apiPath(`/api/queue/profile/${profileCode}`));
+        
+        const url = apiPath(`/api/queue/profile/${profileCode}`);
+        const startTime = performance.now();
+        
+        console.groupCollapsed(`🟢 GET ${url}`);
+        console.log('📤 REQUEST:', {
+            method: 'GET',
+            url: url,
+            params: { profileCode },
+            timestamp: new Date().toISOString()
+        });
+
+        const res = await fetch(url);
+        const duration = Math.round(performance.now() - startTime);
+        
+        console.log('📥 RESPONSE:', {
+            status: res.status,
+            statusText: res.statusText,
+            ok: res.ok,
+            duration: `${duration}ms`,
+            headers: {
+                'content-type': res.headers.get('content-type')
+            }
+        });
+
         if (res.ok) {
           const data = await res.json();
+          console.log('📦 RESPONSE DATA:', data);
+
           const mapped = data.map((q: any) => {
             const qData = q.data || (q.dataString ? JSON.parse(q.dataString) : {});
             const groupCode = qData.serviceGroup || qData.queueType || 'General';
             const groupName = workflow?.serviceGroups?.find(g => g.code === groupCode)?.name || groupCode || 'General';
             
             return {
-              no: groupCode !== 'General' ? `${groupCode}-${String(q.queueNo).padStart(3,'0')}` : String(q.queueNo).padStart(3,'0'),
+              no: q.docNo || `${groupCode}-${String(q.queueNo).padStart(3,'0')}`, // Use docNo from API
+              docNo: q.docNo, // Store original docNo for selection
+              queueNo: q.queueNo, // Store original queueNo
               channel: 'Walk-in',
-              priority: 'Standard',
+              status: q.status || 'WAITING', // Use status from API, default to 'WAITING'
               timer: '—',
               isExpired: false,
               service: groupName, // Display Name (User Request: Show Name)
               group: groupCode,   // Filter Code (User Request: Keep Code for logic)
-              state: q.status,
+              state: q.status || 'WAITING', // Keep state for filtering
               created: new Date(q.checkInTime || Date.now()).getTime()
             };
           });
+          
+          console.log('✅ SUCCESS: Mapped', mapped.length, 'queues');
+          console.log('📊 Service Group Distribution:', 
+              mapped.reduce((acc: any, q: any) => {
+                  acc[q.group] = (acc[q.group] || 0) + 1;
+                  return acc;
+              }, {})
+          );
+          console.log('📊 State Distribution:', 
+              mapped.reduce((acc: any, q: any) => {
+                  acc[q.state] = (acc[q.state] || 0) + 1;
+                  return acc;
+              }, {})
+          );
+          console.groupEnd();
+          
           setQueueList(mapped);
+        } else {
+            console.error('❌ FAILED:', res.status, res.statusText);
+            console.groupEnd();
         }
-      } catch {}
+      } catch (e) {
+        console.error('❌ ERROR:', e);
+        console.groupEnd();
+      }
     };
-    if (startupStep === 'ready') fetchQueues();
-  }, [startupStep, selectedProfile]);
+    
+    if (startupStep === 'ready') {
+        fetchQueues();
+        interval = setInterval(fetchQueues, 5000); // Refresh every 5 seconds
+    }
+
+    return () => {
+        if (interval) clearInterval(interval);
+    };
+  }, [startupStep, selectedProfile, workflow?.serviceGroups]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleResetConfig = () => {
       if (window.confirm('Change working station? This will reset your current session.')) {
@@ -228,6 +363,106 @@ const OStaffOperations: React.FC = () => {
           setSelectedProfile(null);
           setWorkflow(null);
        }
+  };
+
+  // Handle Call Next Queue
+  const handleCallNext = async () => {
+    if (!selectedProfile?.code) {
+      console.warn('⚠️ ไม่สามารถเรียกคิวได้: ไม่มี Profile');
+      return;
+    }
+
+    const url = apiPath('/api/staff/console/call-next');
+    const startTime = performance.now();
+    
+    const requestBody: any = {
+      profileId: selectedProfile.code,
+      serviceGroup: selectedServiceGroup === 'ALL' ? undefined : selectedServiceGroup,
+      targetStatus: 'CALLING'
+    };
+    
+    // If a queue is selected, add docNo for priority/skip queue
+    if (selectedQueueDocNo) {
+      requestBody.docNo = selectedQueueDocNo;
+    }
+    
+    console.groupCollapsed(`🟡 POST ${url}${selectedQueueDocNo ? ' (ข้ามคิว/เรียกคิวพิเศษ)' : ' (เรียกคิวถัดไป)'}`);
+    console.log('📤 REQUEST:', {
+        method: 'POST',
+        url: url,
+        body: requestBody,
+        timestamp: new Date().toISOString()
+    });
+
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestBody)
+      });
+      
+      const duration = Math.round(performance.now() - startTime);
+      
+      console.log('📥 RESPONSE:', {
+          status: res.status,
+          statusText: res.statusText,
+          ok: res.ok,
+          duration: `${duration}ms`,
+          headers: {
+              'content-type': res.headers.get('content-type')
+          }
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        console.log('📦 RESPONSE DATA:', data);
+        console.log('✅ SUCCESS:', data.message || 'เรียกคิวสำเร็จ');
+        
+        if (data.queue) {
+          console.log('🎫 QUEUE INFO:', {
+            docNo: data.queue.docNo,
+            queueNo: data.queue.queueNo,
+            customerName: data.queue.customerName,
+            status: data.queue.status,
+            queueType: data.queue.queueType
+          });
+        }
+        console.groupEnd();
+        
+        // Update current queue display
+        if (data.queue) {
+          const qData = data.queue.data || {};
+          const groupCode = data.queue.queueType || qData.serviceGroup || 'General';
+          const groupName = workflow?.serviceGroups?.find(g => g.code === groupCode)?.name || groupCode || 'General';
+          
+          setCurrentQueue({
+            number: data.queue.docNo || `${groupCode}-${String(data.queue.queueNo).padStart(3, '0')}`,
+            channel: qData.channel || 'Walk-in',
+            service: groupName,
+            status: data.queue.status,
+            group: groupCode,
+            customerName: data.queue.customerName,
+            tel: data.queue.tel
+          });
+          
+          // Clear selection after successful call
+          setSelectedQueueDocNo(null);
+        }
+        
+        // Refresh queue list
+        // The useEffect will automatically refresh the queue list
+      } else {
+        const errorData = await res.json().catch(() => null);
+        console.error('❌ FAILED:', res.status, res.statusText);
+        console.log('📦 ERROR DATA:', errorData);
+        console.groupEnd();
+      }
+    } catch (e) {
+      console.error('❌ ERROR:', e);
+      console.groupEnd();
+    }
   };
 
   // Render: Loading
@@ -356,33 +591,55 @@ const OStaffOperations: React.FC = () => {
   const filteredQueues = (() => {
       let result = queueList; // Use Real Data
 
-      // 1. Service Group Filter
+      // 1. Filter by status: Only WAITING or empty string
+      result = result.filter(q => q.state === 'WAITING' || q.state === '');
+
+      // 2. Service Group Filter
       if (selectedServiceGroup !== 'ALL') {
           result = result.filter(q => (q.group === selectedServiceGroup));
       }
 
-      // 2. Service Point Focus State & Service Group Filter
+      // 3. Service Point Focus State & Service Group Filter
       if (workflow && selectedPointCode) {
           const currentPoint = workflow.servicePoints.find(p => p.code === selectedPointCode);
           if (currentPoint) {
-              if (currentPoint.focusStates && currentPoint.focusStates.length > 0) {
-                  // Allow WAITING state by default so staff can pick up new tasks
-                  result = result.filter(q => currentPoint.focusStates.includes(q.state) || q.state === 'WAITING');
-              }
+              // For upcoming queue, we only care about service groups, not focus states
               if (currentPoint.serviceGroups && currentPoint.serviceGroups.length > 0) {
                   result = result.filter(q => currentPoint.serviceGroups!.includes(q.group));
               }
           }
       }
 
-      // 3. FIFO Sorting (Sort by created time)
+      // 4. FIFO Sorting (Sort by created time)
       result = result.sort((a, b) => a.created - b.created);
 
       return result;
   })();
 
 
-  // Helper for Priority Badge
+  // Helper for Status Badge
+  const getStatusBadge = (status: string) => {
+    const statusUpper = (status || 'WAITING').toUpperCase();
+    switch (statusUpper) {
+      case 'WAITING':
+        return <span className="px-2 py-1 rounded text-xs font-bold bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">WAITING</span>;
+      case 'CALLING':
+        return <span className="px-2 py-1 rounded text-xs font-bold bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400">CALLING</span>;
+      case 'SERVING':
+      case 'IN_PROGRESS':
+        return <span className="px-2 py-1 rounded text-xs font-bold bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400">{statusUpper}</span>;
+      case 'COMPLETED':
+      case 'DONE':
+        return <span className="px-2 py-1 rounded text-xs font-bold bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400">{statusUpper}</span>;
+      case 'CANCELLED':
+      case 'NO_SHOW':
+        return <span className="px-2 py-1 rounded text-xs font-bold bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400">{statusUpper}</span>;
+      default:
+        return <span className="px-2 py-1 rounded text-xs font-bold bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400">{statusUpper}</span>;
+    }
+  };
+
+  // Helper for Priority Badge (Keep for backward compatibility if needed)
   const getPriorityBadge = (priority: string) => {
     switch (priority) {
       case 'URGENT': return <span className="px-2 py-1 rounded text-xs font-bold bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400">URGENT</span>;
@@ -492,27 +749,64 @@ const OStaffOperations: React.FC = () => {
                 <tr className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   <th className="px-4 py-3">Queue No</th>
                   <th className="px-4 py-3">Channel</th>
-                  <th className="px-4 py-3">Priority</th>
+                  <th className="px-4 py-3">Status</th>
                   <th className="px-4 py-3">SLA Timer</th>
                   <th className="px-4 py-3 text-right">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                {filteredQueues.map((queue, idx) => (
-                  <tr key={idx} className="hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors group">
-                    <td className="px-4 py-4 font-bold text-gray-900 dark:text-white">{queue.no}</td>
-                    <td className="px-4 py-4 text-sm text-gray-600 dark:text-gray-300 flex items-center">
-                      {getChannelIcon(queue.channel)} {queue.channel}
-                    </td>
-                    <td className="px-4 py-4">{getPriorityBadge(queue.priority)}</td>
-                    <td className={`px-4 py-4 font-mono font-medium ${queue.isExpired ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400'}`}>
-                      {queue.timer} {queue.isExpired && <span className="text-xs font-bold ml-1">(EXPIRED)</span>}
-                    </td>
-                    <td className="px-4 py-4 text-right">
-                      <button className="text-blue-600 dark:text-blue-400 hover:underline text-sm font-medium">Details</button>
-                    </td>
-                  </tr>
-                ))}
+                {filteredQueues.map((queue, idx) => {
+                  const isSelected = selectedQueueDocNo === queue.no;
+                  return (
+                    <tr 
+                      key={idx} 
+                      onClick={() => setSelectedQueueDocNo(isSelected ? null : queue.no)}
+                      className={`transition-all cursor-pointer ${
+                        isSelected 
+                          ? 'bg-blue-100 dark:bg-blue-900/30 ring-2 ring-blue-500 dark:ring-blue-400' 
+                          : 'hover:bg-blue-50 dark:hover:bg-blue-900/10'
+                      } group`}
+                    >
+                      <td className="px-4 py-4 font-bold text-gray-900 dark:text-white relative">
+                        {isSelected && (
+                          <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500"></div>
+                        )}
+                        <div className="flex items-center gap-2">
+                          {isSelected && (
+                            <svg className="w-5 h-5 text-blue-500 dark:text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                            </svg>
+                          )}
+                          {queue.no}
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 text-sm text-gray-600 dark:text-gray-300 flex items-center">
+                        {getChannelIcon(queue.channel)} {queue.channel}
+                      </td>
+                      <td className="px-4 py-4">{getStatusBadge(queue.status)}</td>
+                      <td className={`px-4 py-4 font-mono font-medium ${
+                        queue.isExpired ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400'
+                      }`}>
+                        {queue.timer} {queue.isExpired && <span className="text-xs font-bold ml-1">(EXPIRED)</span>}
+                      </td>
+                      <td className="px-4 py-4 text-right">
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedQueueDocNo(isSelected ? null : queue.no);
+                          }}
+                          className={`text-sm font-medium transition-colors ${
+                            isSelected
+                              ? 'text-blue-600 dark:text-blue-400 underline'
+                              : 'text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400'
+                          }`}
+                        >
+                          {isSelected ? 'Deselect' : 'Select'}
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -529,25 +823,61 @@ const OStaffOperations: React.FC = () => {
             </div>
             
             <div className="p-8 flex flex-col items-center justify-center text-center">
-              <p className="text-gray-500 dark:text-gray-400 font-medium mb-2">Customer Ticket Number</p>
-              <h1 className="text-8xl font-black text-gray-900 dark:text-white tracking-tight mb-6">{currentQueue.number}</h1>
-              
-              <div className="flex gap-3">
-                <span className="px-3 py-1 bg-gray-100 dark:bg-gray-700 rounded-lg text-sm text-gray-600 dark:text-gray-300 font-medium">
-                  Channel: {currentQueue.channel}
-                </span>
-                <span className="px-3 py-1 bg-gray-100 dark:bg-gray-700 rounded-lg text-sm text-gray-600 dark:text-gray-300 font-medium">
-                  Service: {currentQueue.service}
-                </span>
-              </div>
+              {currentQueue ? (
+                <>
+                  <p className="text-gray-500 dark:text-gray-400 font-medium mb-2">Customer Ticket Number</p>
+                  <h1 className="text-8xl font-black text-gray-900 dark:text-white tracking-tight mb-6">{currentQueue.number}</h1>
+                  
+                  <div className="flex gap-3 flex-wrap justify-center">
+                    <span className="px-3 py-1 bg-gray-100 dark:bg-gray-700 rounded-lg text-sm text-gray-600 dark:text-gray-300 font-medium">
+                      Channel: {currentQueue.channel}
+                    </span>
+                    <span className="px-3 py-1 bg-gray-100 dark:bg-gray-700 rounded-lg text-sm text-gray-600 dark:text-gray-300 font-medium">
+                      Service: {currentQueue.service}
+                    </span>
+                    {currentQueue.customerName && (
+                      <span className="px-3 py-1 bg-blue-100 dark:bg-blue-700 rounded-lg text-sm text-blue-600 dark:text-blue-300 font-medium">
+                        {currentQueue.customerName}
+                      </span>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p className="text-gray-400 dark:text-gray-500 font-medium mb-4">No Active Queue</p>
+                  <h1 className="text-6xl font-black text-gray-300 dark:text-gray-700 tracking-tight mb-6">---</h1>
+                  <p className="text-sm text-gray-400 dark:text-gray-600">กดปุ่ม "CALL NEXT" เพื่อเรียกคิวถัดไป</p>
+                </>
+              )}
             </div>
           </div>
 
           {/* Action Buttons Grid */}
           <div className="grid grid-cols-2 gap-4">
-            <button className="h-32 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/20 flex flex-col items-center justify-center gap-2 transition-transform active:scale-95">
-              <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"></path></svg>
-              <span className="text-lg font-bold">CALL NEXT</span>
+            <button 
+              onClick={handleCallNext}
+              className={`h-32 rounded-2xl text-white shadow-lg flex flex-col items-center justify-center gap-2 transition-all active:scale-95 ${
+                selectedQueueDocNo
+                  ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 shadow-purple-600/20'
+                  : 'bg-blue-600 hover:bg-blue-700 shadow-blue-600/20'
+              }`}
+            >
+              {selectedQueueDocNo ? (
+                <>
+                  <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+                  </svg>
+                  <span className="text-lg font-bold">CALL SELECTED</span>
+                  <span className="text-xs opacity-80">(ข้ามคิว)</span>
+                </>
+              ) : (
+                <>
+                  <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"></path>
+                  </svg>
+                  <span className="text-lg font-bold">CALL NEXT</span>
+                </>
+              )}
             </button>
             
             <button className="h-32 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/20 flex flex-col items-center justify-center gap-2 transition-transform active:scale-95">

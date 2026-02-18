@@ -16,13 +16,9 @@ import OStaffOperations from './pages/staff/OStaffOperations';
 import OBulkQueueManagement from './pages/staff/OBulkQueueManagement';
 import ODisplayBoard from './pages/board/ODisplayBoard';
 import './i18n';
-import { apiPath } from './config/api';
 
 // Layouts
 import MainLayout from './layouts/MainLayout';
-
-// Components
-import OQueueBoard from './components/queue/OQueueBoard';
 
 // --- Protected Route Component ---
 const RequireAuth: React.FC = () => {
@@ -73,7 +69,7 @@ const App: React.FC = () => {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <Router>
           <div className="min-h-screen bg-gray-50 dark:bg-gray-900 font-sans text-gray-900 dark:text-white transition-colors duration-200">
             <Routes>
               {/* Public Routes */}
