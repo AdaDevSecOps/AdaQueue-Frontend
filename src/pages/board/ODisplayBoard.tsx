@@ -19,9 +19,13 @@ interface IDisplayBoardDefinition {
   visibleServiceGroups: string[];
 }
 
-interface IWorkflowDefinition {
-  profileId: string;
-  displayBoards: IDisplayBoardDefinition[];
+interface IServiceGroup {
+  code: string;
+  name: string;
+  description?: string;
+  priority?: string;
+  initialState?: string;
+  states?: Record<string, any>;
 }
 
 const ODisplayBoard: React.FC = () => {
@@ -33,6 +37,7 @@ const ODisplayBoard: React.FC = () => {
   // Data State
   const [availableProfiles, setAvailableProfiles] = useState<IProfileOption[]>([]);
   const [availableBoards, setAvailableBoards] = useState<IDisplayBoardDefinition[]>([]);
+  const [serviceGroups, setServiceGroups] = useState<IServiceGroup[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [queues, setQueues] = useState<any[]>([]); // Real Queue Data
@@ -69,28 +74,82 @@ const ODisplayBoard: React.FC = () => {
 
     const fetchQueues = async () => {
         if (!selectedProfileId) return;
+        const url = apiPath(`/api/queue/profile/${selectedProfileId}`);
+        const startTime = performance.now();
+        
+        console.groupCollapsed(`🟢 GET ${url}`);
+        console.log('📤 REQUEST:', {
+            method: 'GET',
+            url: url,
+            params: { profileId: selectedProfileId },
+            timestamp: new Date().toISOString()
+        });
+
         try {
-            const res = await fetch(apiPath(`/api/queue/profile/${selectedProfileId}`));
+            const res = await fetch(url);
+            const duration = Math.round(performance.now() - startTime);
+            
+            console.log('📥 RESPONSE:', {
+                status: res.status,
+                statusText: res.statusText,
+                ok: res.ok,
+                duration: `${duration}ms`,
+                headers: {
+                    'content-type': res.headers.get('content-type')
+                }
+            });
+
             if (res.ok) {
                 const data = await res.json();
+                console.log('📦 RESPONSE DATA:', data);
+
                 const mapped = data.map((q: any) => {
-                  const raw = q.queueNo || q.docNo;
-                  const hasAlpha = /[A-Za-z-]/.test(String(raw));
-                  const formatted = hasAlpha ? String(raw) : String(raw).padStart(3, '0');
-                  const prefix = q.data?.queueType ? String(q.data.queueType) : (q.data?.serviceGroup ? String(q.data.serviceGroup) : '');
-                  const label = prefix ? `${prefix}-${formatted}` : formatted;
+                  // Parse embedded data from either object `data` or JSON string `dataString`
+                  let embedded: any = {};
+                  try {
+                    if (q.data && typeof q.data === 'object') embedded = q.data;
+                    else if (q.dataString) embedded = JSON.parse(q.dataString);
+                  } catch (err) {
+                    console.warn('Failed to parse dataString for', q.docNo, err);
+                  }
+
+                  // Use docNo directly without formatting
+                  const label = q.docNo;
+
+                  // Use queueType from response directly
+                  const serviceGroup = q.queueType || 'General';
+
                   return {
                     docNo: q.docNo,
                     queueNo: label,
                     status: q.status,
-                    serviceGroup: q.data?.queueType || q.data?.serviceGroup || 'General',
-                    counter: q.data?.counter || '-'
+                    serviceGroup: serviceGroup,
+                    refType: q.refType || '',
+                    checkInTime: q.checkInTime || new Date().toISOString(),
+                    counter: embedded.counter ?? '-'
                   };
                 });
+                
+                // Sort by checkInTime
+                mapped.sort((a: any, b: any) => {
+                    return new Date(a.checkInTime).getTime() - new Date(b.checkInTime).getTime();
+                });
+                console.log('✅ SUCCESS: Mapped', mapped.length, 'queues');
+                console.log('📊 Service Group Distribution:', 
+                    mapped.reduce((acc: any, q: any) => {
+                        acc[q.serviceGroup] = (acc[q.serviceGroup] || 0) + 1;
+                        return acc;
+                    }, {})
+                );
+                console.groupEnd();
                 setQueues(mapped);
+            } else {
+                console.error('❌ FAILED:', res.status, res.statusText);
+                console.groupEnd();
             }
         } catch (e) {
-            console.error('Failed to fetch queues for board', e);
+            console.error('❌ ERROR:', e);
+            console.groupEnd();
         }
     };
 
@@ -107,12 +166,36 @@ const ODisplayBoard: React.FC = () => {
   // --- Logic ---
 
   const loadProfiles = async (): Promise<IProfileOption[]> => {
+    const url = apiPath('/api/profile');
+    const startTime = performance.now();
+    
+    console.groupCollapsed(`🔵 GET ${url}`);
+    console.log('📤 REQUEST:', {
+        method: 'GET',
+        url: url,
+        timestamp: new Date().toISOString()
+    });
+    
     try {
-        const res = await fetch(apiPath('/api/profile'));
+        const res = await fetch(url);
+        const duration = Math.round(performance.now() - startTime);
+        const contentType = res.headers.get("content-type");
+        
+        console.log('📥 RESPONSE:', {
+            status: res.status,
+            statusText: res.statusText,
+            ok: res.ok,
+            duration: `${duration}ms`,
+            headers: {
+                'content-type': contentType
+            }
+        });
+
         if (res.ok) {
-            const contentType = res.headers.get("content-type");
             if (contentType && contentType.indexOf("application/json") !== -1) {
                 const data = await res.json();
+                console.log('📦 RESPONSE DATA:', data);
+
                 // Map to IProfileOption
                 const profiles: IProfileOption[] = data.map((p: any) => ({
                     code: p.code,
@@ -121,16 +204,22 @@ const ODisplayBoard: React.FC = () => {
                     description: p.name // Use name as description if not available
                 }));
                 setAvailableProfiles(profiles);
+                console.log('✅ SUCCESS: Loaded', profiles.length, 'profiles');
+                console.groupEnd();
                 return profiles;
             } else {
-                console.error("Received non-JSON response from /api/profile");
+                console.error("❌ FAILED: Received non-JSON response");
+                console.groupEnd();
                 setError("Backend connection failed. Invalid response format.");
             }
         } else {
+            console.error(`❌ FAILED: ${res.status} ${res.statusText}`);
+            console.groupEnd();
             setError(`Failed to load profiles: ${res.status}`);
         }
     } catch (e) {
-        console.warn('Failed to load profiles', e);
+        console.error('❌ ERROR:', e);
+        console.groupEnd();
         setError("Network error connecting to backend.");
     }
     return [];
@@ -138,18 +227,61 @@ const ODisplayBoard: React.FC = () => {
 
   const loadWorkflowForProfile = async (profileId: string): Promise<IDisplayBoardDefinition[]> => {
     setLoading(true);
+    const url = apiPath(`/api/workflow-designer/${profileId}`);
+    const startTime = performance.now();
+    
+    console.groupCollapsed(`🟣 GET ${url}`);
+    console.log('📤 REQUEST:', {
+        method: 'GET',
+        url: url,
+        params: { profileId },
+        timestamp: new Date().toISOString()
+    });
+    
     try {
-        const res = await fetch(apiPath(`/api/workflow-designer/${profileId}`));
+        const res = await fetch(url);
+        const duration = Math.round(performance.now() - startTime);
+        
+        console.log('📥 RESPONSE:', {
+            status: res.status,
+            statusText: res.statusText,
+            ok: res.ok,
+            duration: `${duration}ms`,
+            headers: {
+                'content-type': res.headers.get('content-type')
+            }
+        });
+
         if (res.ok) {
             const workflow = await res.json();
+            console.log('📦 RESPONSE DATA:', workflow);
+            console.log('📊 SUMMARY:', {
+                profileId: workflow.profileId,
+                profileName: workflow.profileName,
+                serviceGroups: workflow.serviceGroups?.length || 0,
+                displayBoards: workflow.displayBoards?.length || 0
+            });
+            console.log('✅ SUCCESS: Workflow loaded with', workflow.displayBoards?.length || 0, 'display boards');
+            console.groupEnd();
+
+            // Save workflow data including serviceGroups
             localStorage.setItem(`adaqueue_workflow_${profileId}`, JSON.stringify(workflow));
+            
+            // Store serviceGroups for later use
+            if (workflow.serviceGroups) {
+                setServiceGroups(workflow.serviceGroups);
+            }
+            
             setLoading(false);
             return workflow.displayBoards || [];
         } else {
+             console.error('❌ FAILED:', res.status, res.statusText);
+             console.groupEnd();
              setError("Failed to load workflow configuration.");
         }
     } catch (e) {
-        console.warn('Failed to load workflow', e);
+        console.error('❌ ERROR:', e);
+        console.groupEnd();
         setError("Network error loading workflow.");
     }
     setLoading(false);
@@ -184,35 +316,104 @@ const ODisplayBoard: React.FC = () => {
   // --- Render ---
 
   if (startupStep === 'ready' && selectedBoard) {
-      // Mock Queues for Display (In real app, we would fetch based on selectedBoard.visibleServiceGroups)
-      // const mockQueues = [
-      //   { docNo: 'A001', queueNo: 'A-101', status: 'WAIT', serviceGroup: 'GRP_DEP' },
-      //   ...
-      // ];
-      
-      const waitingQueues = queues.filter(q => q.status === 'WAITING' || q.status === 'WAIT_TABLE');
-      const dueQueues = queues.filter(q => q.status === 'SERVING' || q.status === 'ASSIGNED' || q.status === 'CALLING');
-      const inScope = (arr: any[]) => arr.filter(q =>
-        !selectedBoard.visibleServiceGroups || 
-        selectedBoard.visibleServiceGroups.length === 0 || 
-        selectedBoard.visibleServiceGroups.includes('ALL') ||
-        selectedBoard.visibleServiceGroups.includes(q.serviceGroup)
-      );
+      // Get visible service group codes
+      const visibleGroupCodes = selectedBoard.visibleServiceGroups || [];
 
+      // Helper function to get service group name from code
+      const getServiceGroupName = (code: string): string => {
+          const group = serviceGroups.find(sg => sg.code === code);
+          return group?.name || code; // Fallback to code if name not found
+      };
+
+      // Check if single service group mode (state-based columns)
+      const isSingleGroupMode = visibleGroupCodes.length === 1;
+      
+      if (isSingleGroupMode) {
+          // Single Service Group Mode: Display by states
+          const singleGroupCode = visibleGroupCodes[0];
+          // Find the service group that matches the visible code
+          const singleGroup = serviceGroups.find(sg => sg.code === singleGroupCode);
+          
+          if (!singleGroup || !singleGroup.states) {
+              return <div className="min-h-screen bg-gray-900 flex items-center justify-center text-white">Invalid service group configuration</div>;
+          }
+
+          // Get all state codes from the service group
+          const stateEntries = Object.entries(singleGroup.states);
+          
+          return (
+            <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 p-2">
+                 {/* Hidden Reset Button (Top Left corner hover) */}
+                 <div className="absolute top-0 left-0 w-16 h-16 z-50 opacity-0 hover:opacity-100 transition-opacity">
+                    <button 
+                        onClick={handleResetConfig}
+                        className="bg-red-600 text-white text-xs p-2 rounded shadow-lg m-2 hover:bg-red-700 transition-colors"
+                    >
+                        Reset Config
+                    </button>
+                 </div>
+
+                 {/* State-Based Columns */}
+                 <div className="flex gap-2 h-full">
+                     {stateEntries.map(([stateCode, stateData]: [string, any]) => {
+                         // Filter queues by state (status) - show all queueTypes
+                         const stateQueues = queues.filter(q => q.status === stateCode);
+                         
+                         return (
+                             <OQueueBoard 
+                                 key={stateCode}
+                                 queues={stateQueues}
+                                 leftTitle={stateData.label || stateCode}
+                                 title={stateData.label || stateCode}
+                             />
+                         );
+                     })}
+                 </div>
+            </div>
+          );
+      }
+
+      // Multi Service Group Mode: Display 3 fixed columns
       return (
-        <div className="relative">
+        <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 p-2">
              {/* Hidden Reset Button (Top Left corner hover) */}
              <div className="absolute top-0 left-0 w-16 h-16 z-50 opacity-0 hover:opacity-100 transition-opacity">
                 <button 
                     onClick={handleResetConfig}
-                    className="bg-red-600 text-white text-xs p-2 rounded shadow-lg m-2"
+                    className="bg-red-600 text-white text-xs p-2 rounded shadow-lg m-2 hover:bg-red-700 transition-colors"
                 >
                     Reset Config
                 </button>
              </div>
-             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-               <OQueueBoard queues={inScope(waitingQueues)} title={(selectedBoard.title || '') + ' - Waiting'} />
-               <OQueueBoard queues={inScope(dueQueues)} title={(selectedBoard.title || '') + ' - Due'} />
+
+             {/* Three Fixed Columns */}
+             <div className="flex gap-2 h-full">
+                 {/* Column 1: Waiting Queue - All queues, all queueTypes (including "") */}
+                 <OQueueBoard 
+                     queues={queues}
+                     leftTitle="Waiting Queue"
+                     title="Waiting Queue"
+                 />
+
+                 {/* Column 2: คิวที่ทำ - Queues with status !== "WAITING" */}
+                 <OQueueBoard 
+                     queues={queues.filter(q => q.status !== 'WAITING')}
+                     leftTitle="คิวที่กำลังดำเนินการ"
+                     title="คิวที่กำลังดำเนินการ"
+                 />
+
+                 {/* Column 3: ช่องบริการ - Show refType as service group name */}
+                 <OQueueBoard 
+                     queues={queues
+                         .filter(q => q.refType && q.refType !== '') // Only queues with refType
+                         .map(q => ({
+                             ...q,
+                             queueNo: getServiceGroupName(q.refType) // Show service group name instead of queue number
+                         }))
+                     }
+                     leftTitle="ช่องบริการ"
+                     title="ช่องบริการ"
+                 />
              </div>
         </div>
       );

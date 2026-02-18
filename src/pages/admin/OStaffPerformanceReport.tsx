@@ -8,20 +8,15 @@ import { apiPath } from '../../config/api';
  * Reference Mockup: staff_&_sla_performance_report.png
  */
 const OStaffPerformanceReport: React.FC = () => {
-  const [loading, setLoading] = useState(false);
   const [summary, setSummary] = useState<any | null>(null);
   const [heatmap, setHeatmap] = useState<any | null>(null);
   const [staffRows, setStaffRows] = useState<any[]>([]);
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
   const [meta, setMeta] = useState<any | null>(null);
-  const [filters, setFilters] = useState({ datePreset: 'last_30d', staffRole: 'All' });
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchAll = async () => {
-      setLoading(true);
-      setError(null);
+      const pageSize = 20;
       try {
         const [sumRes, heatRes, staffRes] = await Promise.all([
           fetch(apiPath('/api/performance/summary')),
@@ -36,13 +31,11 @@ const OStaffPerformanceReport: React.FC = () => {
         setStaffRows(staff.data);
         setMeta(staff.meta);
       } catch (e: any) {
-        setError('โหลดข้อมูลรายงานไม่สำเร็จ');
-      } finally {
-        setLoading(false);
+        console.error('Failed to load performance report:', e);
       }
     };
     fetchAll();
-  }, [page, pageSize]);
+  }, [page]);
 
   const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   const timeSlots = ['08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00'];
@@ -278,7 +271,7 @@ const OStaffPerformanceReport: React.FC = () => {
         
         {/* Pagination */}
         <div className="p-4 border-t border-gray-200 dark:border-gray-700 flex justify-between items-center text-sm text-gray-500 dark:text-gray-400">
-          <span>{meta ? `Showing ${(page-1)*pageSize+1} to ${Math.min(page*pageSize, meta.pagination.totalItems)} of ${meta.pagination.totalItems} staff members` : ''}</span>
+          <span>{meta ? `Showing ${(page-1)*20+1} to ${Math.min(page*20, meta.pagination.totalItems)} of ${meta.pagination.totalItems} staff members` : ''}</span>
           <div className="flex gap-2">
             <button onClick={() => setPage(Math.max(1, page-1))} className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700 transition">Previous</button>
             <button className="px-3 py-1 bg-blue-600 text-white rounded">{page}</button>

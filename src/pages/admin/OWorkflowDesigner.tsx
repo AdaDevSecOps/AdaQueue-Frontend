@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { apiPath } from '../../config/api';
 import { 
   Building2, Plus, Pencil, Trash2, Save, ArrowLeft, 
-  Clock, MapPin, Users, Settings, CheckCircle2, AlertTriangle,
-  Monitor, Smartphone, UserCheck, Stethoscope, Pill, CheckSquare,
+  Clock, MapPin, CheckCircle2,
+  Monitor, CheckSquare,
   ArrowRight, ClipboardList, Activity
 } from 'lucide-react';
 
@@ -98,8 +98,6 @@ const OWorkflowDesigner: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
-  const [isEditingProfileName, setIsEditingProfileName] = useState(false);
-  const [newProfileName, setNewProfileName] = useState('');
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [isCreateProfileModalOpen, setIsCreateProfileModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
@@ -115,10 +113,36 @@ const OWorkflowDesigner: React.FC = () => {
   // Fetch Profiles from Backend on Mount
   useEffect(() => {
     const fetchProfiles = async () => {
+        const url = apiPath('/api/profile');
+        const startTime = performance.now();
+        
+        console.groupCollapsed(`🔵 GET ${url}`);
+        console.log('📤 REQUEST:', {
+            method: 'GET',
+            url: url,
+            timestamp: new Date().toISOString()
+        });
+        
         try {
-            const res = await fetch(apiPath('/api/profile'));
+            const res = await fetch(url);
+            const duration = Math.round(performance.now() - startTime);
+            
+            console.log('📥 RESPONSE:', {
+                status: res.status,
+                statusText: res.statusText,
+                ok: res.ok,
+                duration: `${duration}ms`,
+                headers: {
+                    'content-type': res.headers.get('content-type')
+                }
+            });
+            
             if (res.ok) {
                 const data = await res.json();
+                console.log('📦 RESPONSE DATA:', data);
+                console.log('✅ SUCCESS: Loaded', data.length, 'profiles');
+                console.groupEnd();
+                
                 // Map backend entity to IProfileOption
                 const mappedProfiles = data.map((p: any) => ({
                     code: p.code,
@@ -132,10 +156,12 @@ const OWorkflowDesigner: React.FC = () => {
                     setSelectedProfileId(mappedProfiles[0].code);
                 }
             } else {
-                console.error("Failed to fetch profiles");
+                console.error('❌ FAILED:', res.statusText);
+                console.groupEnd();
             }
         } catch (e) {
-            console.error("API Error fetching profiles:", e);
+            console.error('❌ ERROR:', e);
+            console.groupEnd();
         }
     };
     fetchProfiles();
@@ -143,35 +169,73 @@ const OWorkflowDesigner: React.FC = () => {
 
   // Save selected profile ID and fetch data whenever selection changes
   useEffect(() => {
-    if (selectedProfileId) {
-        fetchWorkflow(selectedProfileId);
-    }
-  }, [selectedProfileId]);
+    const fetchData = async () => {
+      if (selectedProfileId) {
+        await fetchWorkflow(selectedProfileId);
+      }
+    };
+    fetchData();
+  }, [selectedProfileId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // --- Data Fetching & Mocking ---
   const fetchWorkflow = async (profileId: string) => {
     setLoading(true);
-    setError(null);
     try {
       let loadedData: IWorkflowDefinition | null = null;
       
       // 1. Fetch from API (Strict Mode: No LocalStorage Fallback)
+      const url = apiPath(`/api/workflow-designer/${profileId}`);
+      const startTime = performance.now();
+      
+      console.groupCollapsed(`🟢 GET ${url}`);
+      console.log('📤 REQUEST:', {
+          method: 'GET',
+          url: url,
+          params: { profileId },
+          timestamp: new Date().toISOString()
+      });
+      
       try {
-          const res = await fetch(apiPath(`/api/workflow-designer/${profileId}`));
+          const res = await fetch(url);
+          const duration = Math.round(performance.now() - startTime);
           const contentType = res.headers.get("content-type");
+          
+          console.log('📥 RESPONSE:', {
+              status: res.status,
+              statusText: res.statusText,
+              ok: res.ok,
+              duration: `${duration}ms`,
+              headers: {
+                  'content-type': contentType
+              }
+          });
+          
           if (res.ok && contentType && contentType.includes("application/json")) {
               const payload = await res.json();
+              console.log('📦 RESPONSE DATA:', payload);
+              
               if (payload && (payload.error || payload.message === 'Not Found')) {
-                  setError('ไม่พบข้อมูลโปรไฟล์หรือเวิร์กโฟลว์ที่เลือก');
+                  console.error('❌ FAILED: ไม่พบข้อมูลโปรไฟล์หรือเวิร์กโฟลว์ที่เลือก');
+                  console.groupEnd();
                   loadedData = null;
               } else {
+                  console.log('✅ SUCCESS: Workflow loaded:', {
+                      profileId: payload.profileId,
+                      serviceGroups: payload.serviceGroups?.length || 0,
+                      servicePoints: payload.servicePoints?.length || 0,
+                      kiosks: payload.kiosks?.length || 0,
+                      displayBoards: payload.displayBoards?.length || 0
+                  });
+                  console.groupEnd();
                   loadedData = payload;
               }
           } else {
-              setError(`Failed to load profile: ${res.statusText}`);
+              console.error(`❌ FAILED: ${res.statusText}`);
+              console.groupEnd();
           }
       } catch (e) {
-          setError("API not reachable. Please check backend connection.");
+          console.error("❌ ERROR: API not reachable", e);
+          console.groupEnd();
       }
 
       if (loadedData) {
@@ -234,12 +298,33 @@ const OWorkflowDesigner: React.FC = () => {
         return;
     }
 
+    const url = apiPath(`/api/profile/${profileCode}`);
+    const startTime = performance.now();
+    
+    console.groupCollapsed(`🔴 DELETE ${url}`);
+    console.log('📤 REQUEST:', {
+        method: 'DELETE',
+        url: url,
+        params: { profileCode, profileName },
+        timestamp: new Date().toISOString()
+    });
+
     try {
-        const res = await fetch(apiPath(`/api/profile/${profileCode}`), {
+        const res = await fetch(url, {
             method: 'DELETE'
+        });
+        
+        const duration = Math.round(performance.now() - startTime);
+        console.log('📥 RESPONSE:', {
+            status: res.status,
+            statusText: res.statusText,
+            ok: res.ok,
+            duration: `${duration}ms`
         });
 
         if (res.ok) {
+            console.log('✅ SUCCESS: Profile deleted:', profileCode);
+            console.groupEnd();
             setProfiles(profiles.filter(p => p.code !== profileCode));
             if (selectedProfileId === profileCode) {
                 // If deleted current profile, switch to first available or clear
@@ -254,9 +339,13 @@ const OWorkflowDesigner: React.FC = () => {
             setSuccessMsg(`Deleted profile: ${profileName}`);
             setTimeout(() => setSuccessMsg(null), 3000);
         } else {
+            console.error('❌ FAILED:', res.statusText);
+            console.groupEnd();
             setError("Failed to delete profile.");
         }
     } catch (e) {
+        console.error('❌ ERROR:', e);
+        console.groupEnd();
         setError("Network error deleting profile.");
     }
   };
@@ -310,13 +399,35 @@ const OWorkflowDesigner: React.FC = () => {
                 payload.workflowCode = undefined; 
             }
 
+            const startTime = performance.now();
+            
+            console.groupCollapsed(`🟣 ${method} ${url}`);
+            console.log('📤 REQUEST:', {
+                method: method,
+                url: url,
+                headers: { 'Content-Type': 'application/json' },
+                operation: isEdit ? 'UPDATE' : 'CREATE',
+                timestamp: new Date().toISOString()
+            });
+            console.log('📦 REQUEST BODY:', payload);
+
             const res = await fetch(url, {
                 method: method,
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
+            
+            const duration = Math.round(performance.now() - startTime);
+            console.log('📥 RESPONSE:', {
+                status: res.status,
+                statusText: res.statusText,
+                ok: res.ok,
+                duration: `${duration}ms`
+            });
 
             if (res.ok) {
+                console.log('✅ SUCCESS: Profile saved:', profileCode);
+                console.groupEnd();
                 const updatedProfile: IProfileOption = {
                     code: profileCode,
                     name: newProfileData.name,
@@ -345,9 +456,13 @@ const OWorkflowDesigner: React.FC = () => {
                 setIsCreateProfileModalOpen(false);
                 setTimeout(() => setSuccessMsg(null), 3000);
             } else {
+                console.error('❌ FAILED:', res.statusText);
+                console.groupEnd();
                 setError("Failed to save profile in database.");
             }
         } catch (e) {
+            console.error('❌ ERROR:', e);
+            console.groupEnd();
             setError("Network error saving profile.");
         }
     }
@@ -358,22 +473,62 @@ const OWorkflowDesigner: React.FC = () => {
     setLoading(true);
     setSuccessMsg(null);
     setError(null);
+    
+    const url = apiPath('/api/workflow-designer/save');
+    const startTime = performance.now();
+    
+    console.groupCollapsed(`🟡 POST ${url}`);
+    console.log('📤 REQUEST:', {
+        method: 'POST',
+        url: url,
+        headers: { 'Content-Type': 'application/json' },
+        timestamp: new Date().toISOString()
+    });
+    console.log('📦 REQUEST BODY:', workflow);
+    console.log('📊 SUMMARY:', {
+        profileId: workflow.profileId,
+        profileCode: workflow.profileCode,
+        serviceGroups: workflow.serviceGroups.length,
+        servicePoints: workflow.servicePoints.length,
+        kiosks: workflow.kiosks?.length || 0,
+        displayBoards: workflow.displayBoards?.length || 0
+    });
+    
     try {
-        const res = await fetch(apiPath('/api/workflow-designer/save'), {
+        const res = await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(workflow)
         });
         
+        const duration = Math.round(performance.now() - startTime);
         const contentType = res.headers.get("content-type");
+        
+        console.log('📥 RESPONSE:', {
+            status: res.status,
+            statusText: res.statusText,
+            ok: res.ok,
+            duration: `${duration}ms`,
+            headers: {
+                'content-type': contentType
+            }
+        });
+        
         if (res.ok && contentType && contentType.includes("application/json")) {
-            await res.json();
+            const result = await res.json();
+            console.log('📦 RESPONSE DATA:', result);
+            console.log('✅ SUCCESS: Workflow saved');
+            console.groupEnd();
             setSuccessMsg('Workflow saved successfully to Database!');
         } else {
+            console.error('❌ FAILED:', res.statusText);
+            console.groupEnd();
             setError(`Failed to save: ${res.statusText}`);
         }
         setTimeout(() => setSuccessMsg(null), 3000);
     } catch (err: any) {
+        console.error('❌ ERROR:', err);
+        console.groupEnd();
         setError("API unreachable. Save failed.");
     } finally {
         setLoading(false);

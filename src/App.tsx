@@ -22,9 +22,6 @@ import OTicketIssued from './pages/kiosk/OTicketIssued';
 // Layouts
 import MainLayout from './layouts/MainLayout';
 
-// Components
-import OQueueBoard from './components/queue/OQueueBoard';
-
 // --- Protected Route Component ---
 const RequireAuth: React.FC = () => {
   const { token, isLoading } = useAuth();
@@ -75,7 +72,7 @@ const App: React.FC = () => {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <Router>
           <div className="min-h-screen bg-gray-50 dark:bg-gray-900 font-sans text-gray-900 dark:text-white transition-colors duration-200">
             <Routes>
               {/* Public Routes */}

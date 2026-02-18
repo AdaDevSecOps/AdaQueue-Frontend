@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Building2, Filter, Users, LayoutGrid, Server, ArrowRight, AlertTriangle, Monitor } from 'lucide-react';
+import { Building2, Filter, LayoutGrid, Server, ArrowRight, AlertTriangle, Monitor } from 'lucide-react';
 import { apiPath } from '../../config/api';
 
 
@@ -106,7 +106,6 @@ const OBulkQueueManagement: React.FC = () => {
   const [workflow, setWorkflow] = useState<IWorkflowDefinition | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [useRealData, setUseRealData] = useState<boolean>(true);
   
   // Filters
   const [filterGroup, setFilterGroup] = useState<string>('ALL');
@@ -150,9 +149,7 @@ const OBulkQueueManagement: React.FC = () => {
       setSelectedProfileId(profileId);
       setStartupStep('select_point');
       await fetchWorkflow(profileId);
-      if (useRealData) {
-        fetchQueues(profileId);
-      }
+      fetchQueues(profileId);
   };
 
   useEffect(() => {
@@ -164,15 +161,15 @@ const OBulkQueueManagement: React.FC = () => {
       }
   }, [selectedProfileId, startupStep]);
 
-  // Generate mock queues when workflow loads (only if not using real data)
+  // Generate mock queues when workflow loads
   useEffect(() => {
-      if (workflow && !useRealData) {
+      if (workflow) {
           const mockData = generateMockQueues(workflow);
           setQueues(mockData);
           setFilterGroup('ALL');
           setFilterPoint('ALL');
       }
-  }, [workflow, useRealData]);
+  }, [workflow]);
 
   // const fetchProfiles = async () => { ... } // Removed
 

@@ -223,7 +223,7 @@ const OWelcome: React.FC<IWelcomeProps> = ({ onSelectCategory }) => {
     };
 
     initStartup();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleKioskSelect = (kioskCode: string) => {
       setLoading(true);
