@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Monitor, Server, ArrowRight, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { Monitor, ArrowRight, AlertTriangle } from 'lucide-react';
 import { apiPath } from '../../config/api';
 import { io, Socket } from 'socket.io-client';
 
@@ -293,7 +293,8 @@ const OStaffOperations: React.FC = () => {
             group: groupCode,
             state: q.status || 'WAITING',
             ticketNo: q.ticketNo,
-            created: new Date(q.checkInTime || Date.now()).getTime()
+            created: new Date(q.checkInTime || Date.now()).getTime(),
+            queueDate: new Date(q.date || Date.now()).toLocaleDateString(),
           };
         });
         console.log('✅ SUCCESS: Mapped', mapped.length, 'queues');
@@ -345,23 +346,6 @@ const OStaffOperations: React.FC = () => {
     };
   }, [startupStep, selectedProfile, fetchQueues]);
 
-  const handleResetConfig = () => {
-      if (window.confirm('Change working station? This will reset your current session.')) {
-          localStorage.removeItem('staff_point_code');
-          setStartupStep('select_point');
-      }
-  };
-
-  const handleFullReset = () => {
-       if (window.confirm('Sign out from this location?')) {
-          localStorage.removeItem('staff_point_code');
-          localStorage.removeItem('staff_profile_code');
-          setStartupStep('select_profile');
-          setSelectedProfile(null);
-          setWorkflow(null);
-       }
-  };
-
   // Handle Call Next Queue
   const handleCallNext = async () => {
     if (!selectedProfile?.code) {
@@ -374,7 +358,15 @@ const OStaffOperations: React.FC = () => {
     
     const requestBody: any = {
       profileId: selectedProfile.code,
-      serviceGroup: selectedServiceGroup === 'ALL' ? undefined : selectedServiceGroup,
+      serviceGroup: (() => {
+        if (selectedQueueDocNo) {
+          const q = queueList.find((x: any) => x.no === selectedQueueDocNo);
+          return q?.group;
+        }
+        const oldest = filteredQueues[0];
+        if (oldest?.group) return oldest.group;
+        return selectedServiceGroup === 'ALL' ? undefined : selectedServiceGroup;
+      })(),
       targetStatus: 'CALLING'
     };
     
@@ -629,17 +621,6 @@ const OStaffOperations: React.FC = () => {
     }
   };
 
-  // Helper for Priority Badge (Keep for backward compatibility if needed)
-  const getPriorityBadge = (priority: string) => {
-    switch (priority) {
-      case 'URGENT': return <span className="px-2 py-1 rounded text-xs font-bold bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400">URGENT</span>;
-      case 'HIGH': return <span className="px-2 py-1 rounded text-xs font-bold bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400">HIGH</span>;
-      case 'NORMAL': case 'Standard': return <span className="px-2 py-1 rounded text-xs font-bold bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">NORMAL</span>;
-      case 'LOW': return <span className="px-2 py-1 rounded text-xs font-bold bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400">LOW</span>;
-      default: return null;
-    }
-  };
-
   // Helper for Channel Icon
   const getChannelIcon = (channel: string) => {
     switch (channel) {
@@ -666,22 +647,7 @@ const OStaffOperations: React.FC = () => {
         <div className="flex items-center gap-4 w-full md:w-auto justify-between md:justify-end">
           {/* Service Group, Zone & Counter Selectors */}
           <div className="flex gap-2 flex-wrap justify-end">
-             {/* Service Group Selector */}
-             <div className="relative">
-              <select 
-                value={selectedServiceGroup}
-                onChange={(e) => setSelectedServiceGroup(e.target.value)}
-                className="appearance-none bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 border rounded-lg py-2 pl-4 pr-10 text-sm font-bold text-blue-700 dark:text-blue-300 focus:ring-2 focus:ring-blue-500 min-w-[160px]"
-              >
-                {serviceGroups.map(group => (
-                  <option key={group.code} value={group.code}>{group.name}</option>
-                ))}
-              </select>
-              <div className="absolute right-3 top-2.5 pointer-events-none text-blue-500">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
-              </div>
-            </div>
-
+            {/* Service Point Selector */}
             <div className="relative">
               <select 
                 value={selectedPointCode}
@@ -697,6 +663,22 @@ const OStaffOperations: React.FC = () => {
                 ))}
               </select>
               <div className="absolute right-3 top-2.5 pointer-events-none text-emerald-500">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+              </div>
+            </div>
+
+            {/* Service Group Selector */}
+            <div className="relative">
+              <select 
+                value={selectedServiceGroup}
+                onChange={(e) => setSelectedServiceGroup(e.target.value)}
+                className="appearance-none bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 border rounded-lg py-2 pl-4 pr-10 text-sm font-bold text-blue-700 dark:text-blue-300 focus:ring-2 focus:ring-blue-500 min-w-[160px]"
+              >
+                {serviceGroups.map(group => (
+                  <option key={group.code} value={group.code}>{group.name}</option>
+                ))}
+              </select>
+              <div className="absolute right-3 top-2.5 pointer-events-none text-blue-500">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
               </div>
             </div>
@@ -767,7 +749,7 @@ const OStaffOperations: React.FC = () => {
                               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                             </svg>
                           )}
-                          {queue.no}
+                          {queue.ticketNo}
                         </div>
                       </td>
                       <td className="px-4 py-4 text-sm text-gray-600 dark:text-gray-300 flex items-center">
