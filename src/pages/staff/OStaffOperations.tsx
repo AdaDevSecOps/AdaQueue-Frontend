@@ -75,6 +75,7 @@ const OStaffOperations: React.FC = () => {
   const [startupStep, setStartupStep] = useState<'init' | 'select_profile' | 'select_point' | 'ready'>('init');
   const [profiles, setProfiles] = useState<IProfileOption[]>([]);
   const [selectedProfile, setSelectedProfile] = useState<IProfileOption | null>(null);
+  const NEAR_SLA_MINUTES = 15;
 
   // 1. Initial Startup Check
     useEffect(() => {
@@ -281,19 +282,22 @@ const OStaffOperations: React.FC = () => {
           const qData = q.data || (q.dataString ? JSON.parse(q.dataString) : {});
           const groupCode = qData.serviceGroup || qData.queueType || 'General';
           const groupName = workflow?.serviceGroups?.find(g => g.code === groupCode)?.name || groupCode || 'General';
+          const checkIn = new Date(q.checkInTime || q.date || Date.now()).getTime();
+          const waitedMs = Date.now() - checkIn;
+          const waitedMin = Math.max(0, Math.floor(waitedMs / 60000));
           return {
             no: q.docNo || `${groupCode}-${String(q.queueNo).padStart(3,'0')}`,
             docNo: q.docNo,
             queueNo: q.queueNo,
             channel: 'Walk-in',
             status: q.status || 'WAITING',
-            timer: '—',
-            isExpired: false,
+            timer: `${waitedMin}m`,
+            isExpired: waitedMin > NEAR_SLA_MINUTES,
             service: groupName,
             group: groupCode,
             state: q.status || 'WAITING',
             ticketNo: q.ticketNo,
-            created: new Date(q.checkInTime || Date.now()).getTime(),
+            created: checkIn,
             queueDate: new Date(q.date || Date.now()).toLocaleDateString(),
           };
         });
@@ -415,7 +419,8 @@ const OStaffOperations: React.FC = () => {
             queueNo: data.queue.queueNo,
             customerName: data.queue.customerName,
             status: data.queue.status,
-            queueType: data.queue.queueType
+            queueType: data.queue.queueType,
+            ticketNo: data.queue.ticketNo,
           });
         }
         console.groupEnd();
@@ -427,7 +432,7 @@ const OStaffOperations: React.FC = () => {
           const groupName = workflow?.serviceGroups?.find(g => g.code === groupCode)?.name || groupCode || 'General';
           
           setCurrentQueue({
-            number: data.queue.docNo || `${groupCode}-${String(data.queue.queueNo).padStart(3, '0')}`,
+            number: data.queue.ticketNo,
             channel: qData.channel || 'Walk-in',
             service: groupName,
             status: data.queue.status,
@@ -561,13 +566,18 @@ const OStaffOperations: React.FC = () => {
   // Fetch Workflow Data (Legacy effect removed/replaced by checkProfiles)
 
 
-  // Use workflow groups if available, else fallback
-  const serviceGroups = workflow?.serviceGroups ? [{ code: 'ALL', name: 'All Services' }, ...workflow.serviceGroups] : [
-    { code: 'ALL', name: 'All Services' },
-    { code: 'Q-OPD-01', name: 'OPD Patient' },
-    { code: 'Q-IPD-02', name: 'IPD Patient' },
-    { code: 'Q-ER-03', name: 'Emergency ER' }
-  ];
+  const serviceGroups = (() => {
+    const baseGroups = workflow?.serviceGroups || [];
+    if (workflow && selectedPointCode) {
+      const point = workflow.servicePoints.find(p => p.code === selectedPointCode);
+      const allowedCodes = point?.serviceGroups || [];
+      if (allowedCodes.length > 0) {
+        const filtered = baseGroups.filter(g => allowedCodes.includes(g.code));
+        return [{ code: 'ALL', name: 'All Services' }, ...filtered];
+      }
+    }
+    return [{ code: 'ALL', name: 'All Services' }, ...baseGroups];
+  })();
 
   // Filter queues based on selected service group AND selected service point focus states
   const filteredQueues = (() => {
@@ -597,6 +607,13 @@ const OStaffOperations: React.FC = () => {
 
       return result;
   })();
+
+  const waitingCount = filteredQueues.filter(q => q.state === 'WAITING' || q.state === '').length;
+  const nearSlaCount = filteredQueues.filter(q => {
+    if (q.state !== 'WAITING' && q.state !== '') return false;
+    const waitedMs = Date.now() - (q.created || Date.now());
+    return waitedMs > NEAR_SLA_MINUTES * 60_000;
+  }).length;
 
 
   // Helper for Status Badge
@@ -655,11 +672,18 @@ const OStaffOperations: React.FC = () => {
                     const newPoint = e.target.value;
                     setSelectedPointCode(newPoint);
                     localStorage.setItem('staff_point_code', newPoint);
+                    if (workflow) {
+                      const point = workflow.servicePoints.find(p => p.code === newPoint);
+                      const allowedCodes = point?.serviceGroups || [];
+                      if (allowedCodes.length > 0 && selectedServiceGroup !== 'ALL' && !allowedCodes.includes(selectedServiceGroup)) {
+                        setSelectedServiceGroup('ALL');
+                      }
+                    }
                 }}
-                className="appearance-none bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800 border rounded-lg py-2 pl-4 pr-10 text-sm font-bold text-emerald-700 dark:text-emerald-300 focus:ring-2 focus:ring-emerald-500 min-w-[180px]"
+                className="appearance-none bg-emerald-50 dark:bg-gray-800 border-emerald-200 dark:border-gray-600 border rounded-lg py-2 pl-4 pr-10 text-sm font-bold text-emerald-700 dark:text-white focus:ring-2 focus:ring-emerald-500 dark:focus:ring-emerald-400 min-w-[180px]"
               >
                 {workflow?.servicePoints?.map(point => (
-                  <option key={point.code} value={point.code}>{point.name}</option>
+                  <option key={point.code} value={point.code} className="dark:bg-gray-800 dark:text-white">{point.name}</option>
                 ))}
               </select>
               <div className="absolute right-3 top-2.5 pointer-events-none text-emerald-500">
@@ -672,10 +696,10 @@ const OStaffOperations: React.FC = () => {
               <select 
                 value={selectedServiceGroup}
                 onChange={(e) => setSelectedServiceGroup(e.target.value)}
-                className="appearance-none bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 border rounded-lg py-2 pl-4 pr-10 text-sm font-bold text-blue-700 dark:text-blue-300 focus:ring-2 focus:ring-blue-500 min-w-[160px]"
+                className="appearance-none bg-blue-50 dark:bg-gray-800 border-blue-200 dark:border-gray-600 border rounded-lg py-2 pl-4 pr-10 text-sm font-bold text-blue-700 dark:text-white focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 min-w-[160px]"
               >
                 {serviceGroups.map(group => (
-                  <option key={group.code} value={group.code}>{group.name}</option>
+                  <option key={group.code} value={group.code} className="dark:bg-gray-800 dark:text-white">{group.name}</option>
                 ))}
               </select>
               <div className="absolute right-3 top-2.5 pointer-events-none text-blue-500">
@@ -688,11 +712,11 @@ const OStaffOperations: React.FC = () => {
           <div className="hidden lg:flex items-center gap-4 text-sm font-medium">
              <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
                <span className="w-2.5 h-2.5 rounded-full bg-green-500"></span>
-               12 Waiting
+               {waitingCount} Waiting
              </div>
              <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400">
                <span className="w-0 h-0 border-l-[5px] border-l-transparent border-r-[5px] border-r-transparent border-b-[8px] border-b-amber-500"></span>
-               3 Near SLA
+               {nearSlaCount} Near SLA
              </div>
           </div>
         </div>
@@ -723,7 +747,7 @@ const OStaffOperations: React.FC = () => {
                   <th className="px-4 py-3">Channel</th>
                   <th className="px-4 py-3">Status</th>
                   <th className="px-4 py-3">SLA Timer</th>
-                  <th className="px-4 py-3 text-right">Action</th>
+                  {/* <th className="px-4 py-3 text-right">Action</th> */}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
@@ -761,7 +785,7 @@ const OStaffOperations: React.FC = () => {
                       }`}>
                         {queue.timer} {queue.isExpired && <span className="text-xs font-bold ml-1">(EXPIRED)</span>}
                       </td>
-                      <td className="px-4 py-4 text-right">
+                      {/* <td className="px-4 py-4 text-right">
                         <button 
                           onClick={(e) => {
                             e.stopPropagation();
@@ -775,7 +799,7 @@ const OStaffOperations: React.FC = () => {
                         >
                           {isSelected ? 'Deselect' : 'Select'}
                         </button>
-                      </td>
+                      </td> */}
                     </tr>
                   );
                 })}
