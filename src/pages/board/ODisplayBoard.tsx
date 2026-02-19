@@ -388,31 +388,33 @@ const ODisplayBoard: React.FC = () => {
 
              {/* Three Fixed Columns */}
              <div className="flex gap-2 h-full">
-                 {/* Column 1: Waiting Queue - All queues, all queueTypes (including "") */}
+                 {/* Column 1: Waiting Queue - Filter by visibleServiceGroups */}
                  <OQueueBoard 
-                     queues={queues}
+                     queues={queues.filter(q => visibleGroupCodes.includes(q.serviceGroup))}
                      leftTitle="Waiting Queue"
                      title="Waiting Queue"
                  />
 
-                 {/* Column 2: คิวที่ทำ - Queues with status !== "WAITING" */}
+                 {/* Column 2: คิวที่กำลังดำเนินการ - Filter by visibleServiceGroups and status !== "WAITING" */}
                  <OQueueBoard 
-                     queues={queues.filter(q => q.status !== 'WAITING')}
+                     queues={queues.filter(q => q.status !== 'WAITING' && visibleGroupCodes.includes(q.serviceGroup))}
                      leftTitle="คิวที่กำลังดำเนินการ"
                      title="คิวที่กำลังดำเนินการ"
+                     displayMode="all"
                  />
 
-                 {/* Column 3: ช่องบริการ - Show refType as service group name */}
+                 {/* Column 3: ช่องบริการ - Show queueType as service group name, filtered by visibleServiceGroups */}
                  <OQueueBoard 
                      queues={queues
-                         .filter(q => q.refType && q.refType !== '') // Only queues with refType
+                         .filter(q => q.queueType && visibleGroupCodes.includes(q.queueType))
                          .map(q => ({
                              ...q,
-                             queueNo: getServiceGroupName(q.refType) // Show service group name instead of queue number
+                             queueNo: getServiceGroupName(q.queueType)
                          }))
                      }
                      leftTitle="ช่องบริการ"
                      title="ช่องบริการ"
+                     displayMode="all"
                  />
              </div>
         </div>
