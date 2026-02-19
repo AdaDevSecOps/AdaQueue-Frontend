@@ -92,13 +92,37 @@ const OWelcome: React.FC<IWelcomeProps> = ({ onSelectCategory }) => {
 
   // 1. Fetch Profiles
   const loadProfiles = async (): Promise<IProfileOption[]> => {
+    const url = apiPath('/api/profile');
+    const startTime = performance.now();
     let loaded: IProfileOption[] = [];
+    
+    console.groupCollapsed(`🔵 GET ${url} (Load Profiles)`);
+    console.log('📤 REQUEST:', {
+        method: 'GET',
+        url: url,
+        timestamp: new Date().toISOString()
+    });
+    
     try {
-        const res = await fetch(apiPath('/api/profile'));
+        const res = await fetch(url);
+        const duration = Math.round(performance.now() - startTime);
+        
+        console.log('📥 RESPONSE:', {
+            status: res.status,
+            statusText: res.statusText,
+            ok: res.ok,
+            duration: `${duration}ms`,
+            headers: {
+                'content-type': res.headers.get('content-type')
+            }
+        });
+        
         if (res.ok) {
             const contentType = res.headers.get("content-type");
             if (contentType && contentType.indexOf("application/json") !== -1) {
                 const data = await res.json();
+                console.log('📦 RESPONSE DATA:', data);
+                
                 loaded = data.map((p: any) => ({
                     code: p.code,
                     name: p.name,
@@ -106,15 +130,21 @@ const OWelcome: React.FC<IWelcomeProps> = ({ onSelectCategory }) => {
                     description: p.name
                 }));
                 setAvailableProfiles(loaded);
+                console.log('✅ SUCCESS: Loaded', loaded.length, 'profiles');
+                console.groupEnd();
             } else {
-                console.error("Received non-JSON response from /api/profile");
+                console.error("❌ FAILED: Received non-JSON response from /api/profile");
+                console.groupEnd();
                 setError("Backend connection failed. Please restart the frontend server.");
             }
         } else {
+             console.error('❌ FAILED:', res.status, res.statusText);
+             console.groupEnd();
              setError(`Failed to load profiles: ${res.status}`);
         }
     } catch (e) {
-        console.warn('Backend fetch failed', e);
+        console.error('❌ ERROR:', e);
+        console.groupEnd();
         setError("Network error connecting to backend.");
     }
     return loaded;
@@ -127,19 +157,60 @@ const OWelcome: React.FC<IWelcomeProps> = ({ onSelectCategory }) => {
           return;
       }
 
+      const url = apiPath(`/api/workflow-designer/${profileCode}`);
+      const startTime = performance.now();
+      
+      console.groupCollapsed(`🟣 GET ${url} (Check Kiosk Step)`);
+      console.log('📤 REQUEST:', {
+          method: 'GET',
+          url: url,
+          params: { profileCode },
+          timestamp: new Date().toISOString()
+      });
+
       try {
         let workflow: IWorkflowDefinition | null = null;
         try {
-              const res = await fetch(apiPath(`/api/workflow-designer/${profileCode}`));
+              const res = await fetch(url);
+              const duration = Math.round(performance.now() - startTime);
+              
+              console.log('📥 RESPONSE:', {
+                  status: res.status,
+                  statusText: res.statusText,
+                  ok: res.ok,
+                  duration: `${duration}ms`,
+                  headers: {
+                      'content-type': res.headers.get('content-type')
+                  }
+              });
+              
               if (res.ok) {
                   workflow = await res.json();
-                  // Save workflow to localStorage for other pages (Issue Ticket)
-                  try {
-                    localStorage.setItem(`adaqueue_workflow_${profileCode}`, JSON.stringify(workflow));
-                  } catch (e) { console.error("Failed to save workflow to storage", e); }
+                  console.log('📦 RESPONSE DATA:', workflow);
+                  
+                  if (workflow) {
+                      // Save workflow to localStorage for other pages (Issue Ticket)
+                      try {
+                        localStorage.setItem(`adaqueue_workflow_${profileCode}`, JSON.stringify(workflow));
+                      } catch (e) { console.error("Failed to save workflow to storage", e); }
+                      
+                      console.log('📊 SUMMARY:', {
+                          profileCode: workflow.profileId,
+                          profileName: workflow.profileName,
+                          serviceGroups: workflow.serviceGroups.length,
+                          kiosks: workflow.kiosks.length
+                      });
+                      console.log('✅ SUCCESS: Workflow loaded');
+                  }
+                  console.groupEnd();
+              } else {
+                  console.error('❌ FAILED:', res.status, res.statusText);
+                  console.groupEnd();
+                  setError("Failed to load workflow configuration.");
               }
          } catch (apiErr) {
-             console.warn("API Workflow fetch failed", apiErr);
+             console.error('❌ ERROR:', apiErr);
+             console.groupEnd();
              setError("Failed to load workflow configuration.");
          }
 
@@ -174,7 +245,8 @@ const OWelcome: React.FC<IWelcomeProps> = ({ onSelectCategory }) => {
         setLoading(false);
 
       } catch (e) {
-          console.error("Kiosk Check Error", e);
+          console.error('❌ ERROR:', e);
+          console.groupEnd();
           setStartupStep('ready');
           setLoading(false);
       }
@@ -253,13 +325,51 @@ const OWelcome: React.FC<IWelcomeProps> = ({ onSelectCategory }) => {
         }
 
         // 2. Get Workflow for this profile
+        const url = apiPath(`/api/workflow-designer/${selectedProfileCode}`);
+        const startTime = performance.now();
         let workflow: IWorkflowDefinition | null = null;
+        
+        console.groupCollapsed(`🟢 GET ${url} (Load Configuration)`);
+        console.log('📤 REQUEST:', {
+            method: 'GET',
+            url: url,
+            params: { selectedProfileCode },
+            timestamp: new Date().toISOString()
+        });
+        
         try {
-              const res = await fetch(apiPath(`/api/workflow-designer/${selectedProfileCode}`));
+              const res = await fetch(url);
+              const duration = Math.round(performance.now() - startTime);
+              
+              console.log('📥 RESPONSE:', {
+                  status: res.status,
+                  statusText: res.statusText,
+                  ok: res.ok,
+                  duration: `${duration}ms`,
+                  headers: {
+                      'content-type': res.headers.get('content-type')
+                  }
+              });
+              
               if (res.ok) {
                   workflow = await res.json();
+                  console.log('📦 RESPONSE DATA:', workflow);
+                  console.log('📊 SUMMARY:', {
+                      profileId: workflow?.profileId,
+                      profileName: workflow?.profileName,
+                      serviceGroups: workflow?.serviceGroups.length,
+                      kiosks: workflow?.kiosks.length
+                  });
+                  console.log('✅ SUCCESS: Configuration loaded');
+                  console.groupEnd();
+              } else {
+                  console.error('❌ FAILED:', res.status, res.statusText);
+                  console.groupEnd();
               }
-         } catch (apiErr) { console.warn(apiErr); }
+         } catch (apiErr) { 
+             console.error('❌ ERROR:', apiErr);
+             console.groupEnd();
+         }
 
         if (!workflow) {
             throw new Error('Invalid workflow configuration.');

@@ -94,36 +94,76 @@ export const OIssueTicket: React.FC<IIssueTicketProps> = ({ category, onConfirm,
   
 
   const handleSubmit = async () => {
+    const url = apiPath('/api/queue/gen');
+    const startTime = performance.now();
     setLoading(true);
+    
+    const profileId = localStorage.getItem('adaqueue_selected_profile') || undefined;
+    const kioskCode = localStorage.getItem('adaqueue_kiosk_code') || 'KIOSK';
+    const agnCode = localStorage.getItem('adaqueue_agn_code') || 'AGN';
+    const payload = {
+      customerName: phone ? `Phone:${phone}` : 'Walk-in',
+      tel: phone || '',
+      industry: 'BANK',
+      agnCode,
+      profileId,
+      attributes: { pax, category, serviceGroup: category, queueType: category, kioskCode },
+      bchCode: '00002',
+      preFix: 'W',
+      customerType: '00001',
+    };
+    
+    console.groupCollapsed(`🟡 POST ${url} (Generate Queue Ticket)`);
+    console.log('📤 REQUEST:', {
+        method: 'POST',
+        url: url,
+        body: payload,
+        timestamp: new Date().toISOString()
+    });
+    
     try {
-      const profileId = localStorage.getItem('adaqueue_selected_profile') || undefined;
-      const kioskCode = localStorage.getItem('adaqueue_kiosk_code') || 'KIOSK';
-      const agnCode = localStorage.getItem('adaqueue_agn_code') || 'AGN';
-      const payload = {
-        customerName: phone ? `Phone:${phone}` : 'Walk-in',
-        tel: phone || '',
-        industry: 'BANK',
-        agnCode,
-        profileId,
-        attributes: { pax, category, serviceGroup: category, queueType: category, kioskCode },
-        bchCode: '00002',
-        preFix: 'W',
-        customerType: '00001',
-      };
-      const res = await fetch(apiPath('/api/queue/gen'), {
+      const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
+      
+      const duration = Math.round(performance.now() - startTime);
+      
+      console.log('📥 RESPONSE:', {
+          status: res.status,
+          statusText: res.statusText,
+          ok: res.ok,
+          duration: `${duration}ms`,
+          headers: {
+              'content-type': res.headers.get('content-type')
+          }
+      });
+      
       if (!res.ok) {
+        const errorData = await res.json().catch(() => null);
+        console.error('❌ FAILED:', res.status, res.statusText);
+        console.log('📦 ERROR DATA:', errorData);
+        console.groupEnd();
         alert('Failed to create ticket');
         onConfirm({ category, pax, phone, error: true });
       } else {
         const data = await res.json();
+        console.log('📦 RESPONSE DATA:', data);
+        console.log('🎫 TICKET INFO:', {
+            docNo: data.docNo,
+            queueNo: data.queueNo,
+            status: data.status,
+            ticketNo: data.ticketNo
+        });
+        console.log('✅ SUCCESS: Ticket generated successfully');
+        console.groupEnd();
         try { localStorage.setItem('adaqueue_last_queue_docno', data?.docNo || ''); } catch {}
         onConfirm({ category, pax, phone, queue: data });
       }
     } catch (e) {
+      console.error('❌ ERROR:', e);
+      console.groupEnd();
       onConfirm({ category, pax, phone, error: true });
     } finally {
       setLoading(false);

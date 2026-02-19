@@ -13,6 +13,7 @@ interface IOQueueBoardProps {
   queues: IQueueItem[];
   title?: string; // Title for right side (calling display)
   leftTitle?: string; // Title for left side (waiting list)
+  displayMode?: 'waiting' | 'all'; // Display mode: 'waiting' (only waiting queues) or 'all' (all queues)
 }
 
 /**
@@ -22,18 +23,23 @@ interface IOQueueBoardProps {
  * Reference Mockup: public_queue_display_board.png
  * Path: c:\example\IDE\10.Project\2026\03.AdaQueue\docs\mockup\public_queue_display_board.png
  */
-const OQueueBoard: React.FC<IOQueueBoardProps> = ({ queues, title, leftTitle }) => {
+const OQueueBoard: React.FC<IOQueueBoardProps> = ({ queues, title, leftTitle, displayMode = 'waiting' }) => {
   const waiting = queues.filter(q => q.status.startsWith('WAIT'));
   const calling = queues.filter(q => q.status.includes('CALL') || q.status.includes('SERVING') || q.status === 'IN_ROOM');
+  
+  // Filter queues based on displayMode
+  const displayQueues = displayMode === 'waiting'
+    ? waiting
+    : queues;
   
   // Take only recent 3 calling items
   const recentCalling = calling.slice(0, 3);
 
   // Group Waiting Queues
-  const groups = Array.from(new Set(waiting.map(q => q.serviceGroup || 'General'))).sort();
+  const groups = Array.from(new Set(displayQueues.map(q => q.serviceGroup || 'General'))).sort();
   
   // Check if all queues array is empty (not just waiting)
-  const hasNoData = queues.length === 0;
+  const hasNoData = displayQueues.length === 0;
   // If we have 'GRP_DEP' and 'GRP_ACC', we want to show them split.
   // Map codes to display names
   const getGroupName = (code: string) => {
@@ -56,6 +62,26 @@ const OQueueBoard: React.FC<IOQueueBoardProps> = ({ queues, title, leftTitle }) 
       return 'WAIT';
   };
 
+  // Helper to get display label based on displayMode
+  const getStatusLabel = (status: string) => {
+      return displayMode === 'waiting' ? getWaitingLabel(status) : status;
+  };
+
+  // Helper to get badge color based on status
+  const getStatusColor = (status: string) => {
+      return displayMode === 'waiting'
+          ? status === 'WAIT_PHARMACY' 
+              ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300' 
+              : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
+          : (status.includes('CALL') 
+              ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
+              : status.includes('SERVE')
+              ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300'
+              : status.includes('DONE') || status.includes('COMPLETE')
+              ? 'bg-gray-100 text-gray-700 dark:bg-gray-700/30 dark:text-gray-300'
+              : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300');
+  };
+
   return (
     <div className="flex flex-col h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-white font-sans overflow-hidden transition-all duration-200 flex-1 min-w-0">
       
@@ -75,7 +101,7 @@ const OQueueBoard: React.FC<IOQueueBoardProps> = ({ queues, title, leftTitle }) 
                <span className="text-3xl md:text-5xl mb-3">⏳</span>
                <span className="text-base md:text-lg">Waiting for data...</span>
              </div>
-          ) : waiting.length === 0 ? (
+          ) : displayQueues.length === 0 ? (
              <div className="h-full flex flex-col items-center justify-center text-gray-400 dark:text-gray-600 opacity-50">
                <span className="text-3xl md:text-5xl mb-3">☕</span>
                <span className="text-base md:text-lg">No queues waiting</span>
@@ -83,11 +109,11 @@ const OQueueBoard: React.FC<IOQueueBoardProps> = ({ queues, title, leftTitle }) 
           ) : (
             <div className="flex flex-col gap-1.5">
                 {/* Show all queues in single vertical column, no grouping */}
-                {waiting.map(q => (
+                {displayQueues.map(q => (
                     <div key={q.docNo} className="flex justify-between items-center p-2 md:p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-blue-400 dark:hover:border-blue-500 hover:shadow-md transition-all duration-200">
                         <span className="text-lg md:text-2xl font-bold text-gray-800 dark:text-white tracking-wider">{q.queueNo}</span>
-                        <span className={`px-1.5 py-0.5 rounded text-[9px] md:text-[10px] font-medium tracking-wide ${q.status === 'WAIT_PHARMACY' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'}`}>
-                            {getWaitingLabel(q.status)}
+                        <span className={`px-1.5 py-0.5 rounded text-[9px] md:text-[10px] font-medium tracking-wide ${getStatusColor(q.status)}`}>
+                            {getStatusLabel(q.status)}
                         </span>
                     </div>
                 ))}
@@ -96,8 +122,8 @@ const OQueueBoard: React.FC<IOQueueBoardProps> = ({ queues, title, leftTitle }) 
         </div>
         
         <div className="p-2 md:p-3 bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 border-t border-gray-300 dark:border-gray-600 text-center transition-colors duration-200">
-          <span className="text-xs md:text-sm font-semibold text-gray-700 dark:text-gray-300">Total Waiting: </span>
-          <span className="text-sm md:text-base font-bold text-blue-600 dark:text-blue-400">{waiting.length}</span>
+          <span className="text-xs md:text-sm font-semibold text-gray-700 dark:text-gray-300">Total: </span>
+          <span className="text-sm md:text-base font-bold text-blue-600 dark:text-blue-400">{displayQueues.length}</span>
         </div>
       </div>
     </div>
