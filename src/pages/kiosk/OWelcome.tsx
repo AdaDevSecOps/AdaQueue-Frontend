@@ -254,7 +254,12 @@ const OWelcome: React.FC<IWelcomeProps> = ({ onSelectCategory }) => {
 
   const handleProfileSelect = (profileCode: string) => {
       setSelectedProfileCode(profileCode);
-      try { localStorage.setItem('adaqueue_selected_profile', profileCode); } catch {}
+      try { 
+        localStorage.setItem('adaqueue_selected_profile', profileCode); 
+        const profile = availableProfiles.find(p => p.code === profileCode);
+        const agn = profile?.agnCode || 'AGN';
+        localStorage.setItem('adaqueue_agn_code', agn);
+      } catch {}
       setLoading(true);
       checkKioskStep(profileCode);
   };
