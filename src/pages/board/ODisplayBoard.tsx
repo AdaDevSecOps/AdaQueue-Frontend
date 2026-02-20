@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Monitor, Server, ArrowRight, CheckCircle2, AlertTriangle } from 'lucide-react';
 import OQueueBoard from '../../components/queue/OQueueBoard';
 import { apiPath } from '../../config/api';
+import { io, Socket } from 'socket.io-client';
 
 // --- Types ---
 interface IProfileOption {
@@ -68,101 +69,71 @@ const ODisplayBoard: React.FC = () => {
       setStartupStep('select_board');
   };
 
-  // 2. Fetch Queues periodically
+  // 2. Real-time updates via WebSocket
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    if (startupStep !== 'ready' || !selectedProfileId) return;
 
     const fetchQueues = async () => {
-        if (!selectedProfileId) return;
-        const url = apiPath(`/api/queue/profile/${selectedProfileId}`);
-        const startTime = performance.now();
-        
-        console.groupCollapsed(`🟢 GET ${url}`);
-        console.log('📤 REQUEST:', {
-            method: 'GET',
-            url: url,
-            params: { profileId: selectedProfileId },
-            timestamp: new Date().toISOString()
-        });
-
-        try {
-            const res = await fetch(url);
-            const duration = Math.round(performance.now() - startTime);
-            
-            console.log('📥 RESPONSE:', {
-                status: res.status,
-                statusText: res.statusText,
-                ok: res.ok,
-                duration: `${duration}ms`,
-                headers: {
-                    'content-type': res.headers.get('content-type')
-                }
-            });
-
-            if (res.ok) {
-                const data = await res.json();
-                console.log('📦 RESPONSE DATA:', data);
-
-                const mapped = data.map((q: any) => {
-                  // Parse embedded data from either object `data` or JSON string `dataString`
-                  let embedded: any = {};
-                  try {
-                    if (q.data && typeof q.data === 'object') embedded = q.data;
-                    else if (q.dataString) embedded = JSON.parse(q.dataString);
-                  } catch (err) {
-                    console.warn('Failed to parse dataString for', q.docNo, err);
-                  }
-
-                  // Use docNo directly without formatting
-                  const label = q.docNo;
-
-                  // Use queueType from response directly
-                  const serviceGroup = q.queueType || 'General';
-
-                  return {
-                    docNo: q.docNo,
-                    queueNo: label,
-                    ticketNo: q.ticketNo || '',
-                    status: q.status,
-                    serviceGroup: serviceGroup,
-                    queueType: q.queueType || '',
-                    refId: q.refId || embedded.counter || '',
-                    refType: q.refType || '',
-                    checkInTime: q.checkInTime || new Date().toISOString(),
-                    counter: embedded.counter ?? '-'
-                  };
-                });
-                
-                // Sort by checkInTime
-                mapped.sort((a: any, b: any) => {
-                    return new Date(a.checkInTime).getTime() - new Date(b.checkInTime).getTime();
-                });
-                console.log('✅ SUCCESS: Mapped', mapped.length, 'queues');
-                console.log('📊 Service Group Distribution:', 
-                    mapped.reduce((acc: any, q: any) => {
-                        acc[q.serviceGroup] = (acc[q.serviceGroup] || 0) + 1;
-                        return acc;
-                    }, {})
-                );
-                console.groupEnd();
-                setQueues(mapped);
-            } else {
-                console.error('❌ FAILED:', res.status, res.statusText);
-                console.groupEnd();
-            }
-        } catch (e) {
-            console.error('❌ ERROR:', e);
-            console.groupEnd();
+      const url = apiPath(`/api/queue/profile/${selectedProfileId}`);
+      const startTime = performance.now();
+      console.groupCollapsed(`🟢 GET ${url}`);
+      console.log('📤 REQUEST:', { method: 'GET', url, params: { profileId: selectedProfileId }, timestamp: new Date().toISOString() });
+      try {
+        const res = await fetch(url);
+        const duration = Math.round(performance.now() - startTime);
+        console.log('📥 RESPONSE:', { status: res.status, statusText: res.statusText, ok: res.ok, duration: `${duration}ms`, headers: { 'content-type': res.headers.get('content-type') } });
+        if (res.ok) {
+          const data = await res.json();
+          console.log('📦 RESPONSE DATA:', data);
+          const mapped = data.map((q: any) => {
+            let embedded: any = {};
+            try {
+              if (q.data && typeof q.data === 'object') embedded = q.data;
+              else if (q.dataString) embedded = JSON.parse(q.dataString);
+            } catch {}
+            const label = q.docNo;
+            const serviceGroup = q.queueType || 'General';
+            return {
+              docNo: q.docNo,
+              queueNo: label,
+              ticketNo: q.ticketNo || '',
+              status: q.status,
+              serviceGroup: serviceGroup,
+              queueType: q.queueType || '',
+              refId: q.refId || embedded.counter || '',
+              refType: q.refType || '',
+              checkInTime: q.checkInTime || new Date().toISOString(),
+              counter: embedded.counter ?? '-'
+            };
+          });
+          mapped.sort((a: any, b: any) => new Date(a.checkInTime).getTime() - new Date(b.checkInTime).getTime());
+          console.log('✅ SUCCESS: Mapped', mapped.length, 'queues');
+          console.groupEnd();
+          setQueues(mapped);
+        } else {
+          console.error('❌ FAILED:', res.status, res.statusText);
+          console.groupEnd();
         }
+      } catch (e) {
+        console.error('❌ ERROR:', e);
+        console.groupEnd();
+      }
     };
 
-    if (startupStep === 'ready' && selectedProfileId) {
-        fetchQueues();
-        interval = setInterval(fetchQueues, 5000);
-    }
+    const base = (process.env.REACT_APP_API_BASE || '').trim();
+    const url = base && base.startsWith('http') ? base.replace(/\/+$/, '') : window.location.origin;
+    const socket: Socket = io(`${url}/ws`, { path: '/socket.io', transports: ['websocket'], autoConnect: true, withCredentials: false, reconnection: true });
+
+    const handler = (evt: any) => {
+      fetchQueues();
+    };
+
+    socket.on('queue:update', handler);
+    fetchQueues();
 
     return () => {
-        if (interval) clearInterval(interval);
+      socket.off('queue:update', handler);
+      socket.disconnect();
     };
   }, [startupStep, selectedProfileId]);
 
