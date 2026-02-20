@@ -122,8 +122,11 @@ const ODisplayBoard: React.FC = () => {
                   return {
                     docNo: q.docNo,
                     queueNo: label,
+                    ticketNo: q.ticketNo || '',
                     status: q.status,
                     serviceGroup: serviceGroup,
+                    queueType: q.queueType || '',
+                    refId: q.refId || embedded.counter || '',
                     refType: q.refType || '',
                     checkInTime: q.checkInTime || new Date().toISOString(),
                     counter: embedded.counter ?? '-'
@@ -405,13 +408,13 @@ const ODisplayBoard: React.FC = () => {
 
                  {/* Column 3: ช่องบริการ - Show queueType as service group name, filtered by visibleServiceGroups */}
                  <OQueueBoard 
-                     queues={queues
-                         .filter(q => q.queueType && visibleGroupCodes.includes(q.queueType))
-                         .map(q => ({
-                             ...q,
-                             queueNo: getServiceGroupName(q.queueType)
-                         }))
-                     }
+                    queues={queues
+                        .filter(q => q.status !== 'WAITING' && visibleGroupCodes.includes(q.serviceGroup))
+                        .map(q => {
+                            const label = q.refId || q.counter || q.refType || getServiceGroupName(q.serviceGroup);
+                            return { ...q, queueNo: label, ticketNo: '' };
+                        })
+                    }
                      leftTitle="ช่องบริการ"
                      title="ช่องบริการ"
                      displayMode="all"

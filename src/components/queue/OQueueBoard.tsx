@@ -3,6 +3,7 @@ import React from 'react';
 interface IQueueItem {
   docNo: string;
   queueNo: string | number;
+  ticketNo?: string;
   status: string;
   counter?: string;
   serviceGroup?: string; // e.g., 'GRP_DEP', 'GRP_ACC'
@@ -111,10 +112,10 @@ const OQueueBoard: React.FC<IOQueueBoardProps> = ({ queues, title, leftTitle, di
                 {/* Show all queues in single vertical column, no grouping */}
                 {displayQueues.map(q => (
                     <div key={q.docNo} className="flex justify-between items-center p-2 md:p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-blue-400 dark:hover:border-blue-500 hover:shadow-md transition-all duration-200">
-                        <span className="text-lg md:text-2xl font-bold text-gray-800 dark:text-white tracking-wider">{q.queueNo}</span>
-                        <span className={`px-1.5 py-0.5 rounded text-[9px] md:text-[10px] font-medium tracking-wide ${getStatusColor(q.status)}`}>
+                        <span className="text-lg md:text-2xl font-bold text-gray-800 dark:text-white tracking-wider">{q.ticketNo || q.queueNo}</span>
+                        {/* <span className={`px-1.5 py-0.5 rounded text-[9px] md:text-[10px] font-medium tracking-wide ${getStatusColor(q.status)}`}>
                             {getStatusLabel(q.status)}
-                        </span>
+                        </span> */}
                     </div>
                 ))}
             </div>
