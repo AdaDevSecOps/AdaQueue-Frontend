@@ -61,7 +61,12 @@ i18n
   .init({
     resources,
     fallbackLng: 'th',
-    interpolation: { escapeValue: false }
+    interpolation: { escapeValue: false },
+    detection: {
+      order: ['localStorage', 'navigator', 'htmlTag'],
+      lookupLocalStorage: 'adaqueue_lang',
+      caches: ['localStorage']
+    }
   });
 
 export default i18n;

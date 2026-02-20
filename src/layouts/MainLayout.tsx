@@ -152,7 +152,7 @@ const MainLayout: React.FC = () => {
             {isSidebarOpen && <span>{theme === 'light' ? t('theme.dark') : t('theme.light')}</span>}
           </button>
           <div className="mt-2">
-            <OLanguageSwitcher />
+            <OLanguageSwitcher compact={!isSidebarOpen} />
           </div>
 
           {/* Profile */}

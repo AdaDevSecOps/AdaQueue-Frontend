@@ -378,6 +378,13 @@ const OStaffOperations: React.FC = () => {
     if (selectedQueueDocNo) {
       requestBody.docNo = selectedQueueDocNo;
     }
+
+    // Attach service point reference for DB (FTQtxRefID = point.name, FTQtxRefType = point.code)
+    const selectedPoint = workflow?.servicePoints?.find(p => p.code === selectedPointCode);
+    if (selectedPoint) {
+      requestBody.refId = selectedPoint.name;
+      requestBody.refType = selectedPoint.code;
+    }
     
     console.groupCollapsed(`🟡 POST ${url}${selectedQueueDocNo ? ' (ข้ามคิว/เรียกคิวพิเศษ)' : ' (เรียกคิวถัดไป)'}`);
     console.log('📤 REQUEST:', {
