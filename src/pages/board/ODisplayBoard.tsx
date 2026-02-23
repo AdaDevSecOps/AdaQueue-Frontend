@@ -369,18 +369,24 @@ const ODisplayBoard: React.FC = () => {
                      title="Waiting Queue"
                  />
 
-                 {/* Column 2: คิวที่กำลังดำเนินการ - Filter by visibleServiceGroups and status !== "WAITING" */}
+                {/* Column 2: คิวที่กำลังดำเนินการ - แสดงเฉพาะสถานะที่ยังให้บริการ */}
                  <OQueueBoard 
-                     queues={queues.filter(q => q.status !== 'WAITING' && visibleGroupCodes.includes(q.serviceGroup))}
+                    queues={queues.filter(q => {
+                        const active = ['CALLING', 'SERVING', 'IN_PROGRESS', 'IN_ROOM'];
+                        return active.includes(q.status) && visibleGroupCodes.includes(q.serviceGroup);
+                    })}
                      leftTitle="คิวที่กำลังดำเนินการ"
                      title="คิวที่กำลังดำเนินการ"
                      displayMode="all"
                  />
 
-                 {/* Column 3: ช่องบริการ - Show queueType as service group name, filtered by visibleServiceGroups */}
+                {/* Column 3: ช่องบริการ - แสดงชื่อช่องบริการของคิวที่ยังให้บริการ */}
                  <OQueueBoard 
                     queues={queues
-                        .filter(q => q.status !== 'WAITING' && visibleGroupCodes.includes(q.serviceGroup))
+                        .filter(q => {
+                            const active = ['CALLING', 'SERVING', 'IN_PROGRESS', 'IN_ROOM'];
+                            return active.includes(q.status) && visibleGroupCodes.includes(q.serviceGroup);
+                        })
                         .map(q => {
                             const label = q.refId || q.counter || q.refType || getServiceGroupName(q.serviceGroup);
                             return { ...q, queueNo: label, ticketNo: '' };

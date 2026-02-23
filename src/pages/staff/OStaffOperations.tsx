@@ -439,6 +439,7 @@ const OStaffOperations: React.FC = () => {
           const groupName = workflow?.serviceGroups?.find(g => g.code === groupCode)?.name || groupCode || 'General';
           
           setCurrentQueue({
+            docNo: data.queue.docNo,
             number: data.queue.ticketNo,
             channel: qData.channel || 'Walk-in',
             service: groupName,
@@ -462,6 +463,49 @@ const OStaffOperations: React.FC = () => {
       }
     } catch (e) {
       console.error('❌ ERROR:', e);
+      console.groupEnd();
+    }
+  };
+
+  // Handle Start Process -> FINISH current called queue
+  const handleStartProcess = async () => {
+    if (!currentQueue?.docNo || !workflow?.industry) {
+      console.warn('⚠️ ไม่มีคิวที่กำลังเรียกหรือข้อมูลไม่ครบ');
+      return;
+    }
+    const url = apiPath('/api/staff/queue/finish');
+    const payload = {
+      docNo: currentQueue.docNo
+    };
+    const startTime = performance.now();
+    console.groupCollapsed(`🟠 POST ${url} (START PROCESS -> FINISH)`);
+    console.log('📤 REQUEST:', { method: 'POST', url, body: payload, timestamp: new Date().toISOString() });
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const duration = Math.round(performance.now() - startTime);
+      console.log('📥 RESPONSE:', {
+        status: res.status,
+        statusText: res.statusText,
+        ok: res.ok,
+        duration: `${duration}ms`,
+        headers: { 'content-type': res.headers.get('content-type') }
+      });
+      if (res.ok) {
+        console.log('✅ SUCCESS: Updated to FINISH');
+        setCurrentQueue(null);
+        try { await fetchQueues(); } catch {}
+      } else {
+        const errorData = await res.json().catch(() => null);
+        console.error('❌ FAILED:', res.status, res.statusText);
+        console.log('📦 ERROR DATA:', errorData);
+      }
+    } catch (e) {
+      console.error('❌ ERROR:', e);
+    } finally {
       console.groupEnd();
     }
   };
@@ -883,7 +927,7 @@ const OStaffOperations: React.FC = () => {
               )}
             </button>
             
-            <button className="h-32 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/20 flex flex-col items-center justify-center gap-2 transition-transform active:scale-95">
+            <button onClick={handleStartProcess} className="h-32 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/20 flex flex-col items-center justify-center gap-2 transition-transform active:scale-95">
               <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
               <span className="text-lg font-bold">START PROCESS</span>
             </button>
