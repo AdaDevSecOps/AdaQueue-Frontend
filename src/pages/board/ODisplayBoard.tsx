@@ -330,8 +330,14 @@ const ODisplayBoard: React.FC = () => {
                  {/* State-Based Columns */}
                  <div className="flex gap-2 h-full">
                      {stateEntries.map(([stateCode, stateData]: [string, any]) => {
-                         // Filter queues by state (status) - show all queueTypes
-                         const stateQueues = queues.filter(q => q.status === stateCode);
+                        // Match by state code (robust): use stateData.code if present; allow prefix match
+                        const code = (stateData?.code || stateCode || '').toString().toUpperCase();
+                        // Optional: restrict to selected service group
+                        const stateQueues = queues.filter(q => {
+                            const s = (q.status || '').toString().toUpperCase();
+                            const inGroup = visibleGroupCodes.length === 1 ? (q.serviceGroup === visibleGroupCodes[0]) : true;
+                            return inGroup && (s === code || s.startsWith(code));
+                        });
                          
                          return (
                              <OQueueBoard 
@@ -339,6 +345,7 @@ const ODisplayBoard: React.FC = () => {
                                  queues={stateQueues}
                                  leftTitle={stateData.label || stateCode}
                                  title={stateData.label || stateCode}
+                                 displayMode="all"
                              />
                          );
                      })}
