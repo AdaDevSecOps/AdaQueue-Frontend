@@ -352,6 +352,10 @@ const OStaffOperations: React.FC = () => {
 
   // Handle Call Next Queue
   const handleCallNext = async () => {
+    if (currentQueue?.status === 'CALLING') {
+      console.warn('⚠️ ไม่สามารถเรียกคิวถัดไปได้: มีคิวอยู่ในสถานะ Now Calling');
+      return;
+    }
     if (!selectedProfile?.code) {
       console.warn('⚠️ ไม่สามารถเรียกคิวได้: ไม่มี Profile');
       return;
@@ -903,10 +907,14 @@ const OStaffOperations: React.FC = () => {
           <div className="grid grid-cols-2 gap-4">
             <button 
               onClick={handleCallNext}
+              disabled={currentQueue?.status === 'CALLING'}
+              title={currentQueue?.status === 'CALLING' ? 'มีคิวกำลังถูกเรียกอยู่ กรุณาสิ้นสุดก่อน' : undefined}
               className={`h-32 rounded-2xl text-white shadow-lg flex flex-col items-center justify-center gap-2 transition-all active:scale-95 ${
-                selectedQueueDocNo
-                  ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 shadow-purple-600/20'
-                  : 'bg-blue-600 hover:bg-blue-700 shadow-blue-600/20'
+                (currentQueue?.status === 'CALLING')
+                  ? 'bg-gray-400 cursor-not-allowed opacity-60'
+                  : (selectedQueueDocNo
+                      ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 shadow-purple-600/20'
+                      : 'bg-blue-600 hover:bg-blue-700 shadow-blue-600/20')
               }`}
             >
               {selectedQueueDocNo ? (
@@ -927,7 +935,15 @@ const OStaffOperations: React.FC = () => {
               )}
             </button>
             
-            <button onClick={handleStartProcess} className="h-32 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/20 flex flex-col items-center justify-center gap-2 transition-transform active:scale-95">
+            <button 
+              onClick={handleStartProcess} 
+              disabled={!currentQueue}
+              title={!currentQueue ? 'ยังไม่มีคิวใน Now Calling' : undefined}
+              className={`h-32 rounded-2xl text-white shadow-lg flex flex-col items-center justify-center gap-2 transition-transform active:scale-95 ${
+                !currentQueue 
+                  ? 'bg-gray-400 cursor-not-allowed opacity-60' 
+                  : 'bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/20'
+              }`}>
               <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
               <span className="text-lg font-bold">START PROCESS</span>
             </button>
