@@ -25,6 +25,8 @@ interface IServiceGroup {
   name: string;
   description?: string;
   priority?: 'Urgent' | 'High' | 'Standard' | 'Low';
+  initialState?: string;
+  states?: Record<string, IStateDefinition>;
 }
 
 interface IServicePoint {
@@ -352,8 +354,8 @@ const OStaffOperations: React.FC = () => {
 
   // Handle Call Next Queue
   const handleCallNext = async () => {
-    if (currentQueue?.status === 'CALLING') {
-      console.warn('⚠️ ไม่สามารถเรียกคิวถัดไปได้: มีคิวอยู่ในสถานะ Now Calling');
+    if (currentQueue) {
+      console.warn('⚠️ ไม่สามารถเรียกคิวถัดไปได้: มีคิวค้างอยู่ใน Now Calling');
       return;
     }
     if (!selectedProfile?.code) {
@@ -363,6 +365,27 @@ const OStaffOperations: React.FC = () => {
 
     const url = apiPath('/api/staff/console/call-next');
     const startTime = performance.now();
+    
+    const resolveServiceGroupCode = () => {
+      if (selectedQueueDocNo) {
+        const q = queueList.find((x: any) => x.no === selectedQueueDocNo);
+        return q?.group;
+      }
+      const oldest = filteredQueues[0];
+      if (oldest?.group) return oldest.group;
+      return selectedServiceGroup === 'ALL' ? undefined : selectedServiceGroup;
+    };
+
+    const groupCode = resolveServiceGroupCode();
+    const groupDef = workflow?.serviceGroups?.find(g => g.code === groupCode);
+    
+    const determineNextAfterWaiting = () => {
+      const statesMap: Record<string, IStateDefinition> | undefined = (groupDef?.states as any);
+      if (statesMap?.['STATE_2']) return 'STATE_2';
+      const normals = Object.values(statesMap || {}).filter((s: any) => s?.type === 'NORMAL') as any[];
+      if (normals.length > 0) return normals[0].code;
+      return 'CALLING';
+    };
     
     const requestBody: any = {
       profileId: selectedProfile.code,
@@ -375,7 +398,7 @@ const OStaffOperations: React.FC = () => {
         if (oldest?.group) return oldest.group;
         return selectedServiceGroup === 'ALL' ? undefined : selectedServiceGroup;
       })(),
-      targetStatus: 'CALLING'
+      targetStatus: determineNextAfterWaiting()
     };
     
     // If a queue is selected, add docNo for priority/skip queue
@@ -471,18 +494,53 @@ const OStaffOperations: React.FC = () => {
     }
   };
 
-  // Handle Start Process -> FINISH current called queue
+  // Handle Start Process: STATE_2 -> STATE_3 -> FINAL
   const handleStartProcess = async () => {
     if (!currentQueue?.docNo || !workflow?.industry) {
       console.warn('⚠️ ไม่มีคิวที่กำลังเรียกหรือข้อมูลไม่ครบ');
       return;
     }
-    const url = apiPath('/api/staff/queue/finish');
-    const payload = {
-      docNo: currentQueue.docNo
+
+    const resolveServiceGroupCode = () => {
+      if (selectedQueueDocNo) {
+        const q = queueList.find((x: any) => x.no === selectedQueueDocNo);
+        return q?.group;
+      }
+      const oldest = filteredQueues[0];
+      if (oldest?.group) return oldest.group;
+      return selectedServiceGroup === 'ALL' ? undefined : selectedServiceGroup;
     };
+
+    const groupCode = currentQueue?.group ?? resolveServiceGroupCode();
+    const groupDef = workflow?.serviceGroups?.find(g => g.code === groupCode);
+    
+    const current = currentQueue.status || '';
+    const computeNext = () => {
+      const statesMap: Record<string, IStateDefinition> | undefined = (groupDef?.states as any);
+      if (current === 'STATE_2' && statesMap?.['STATE_3']) return 'STATE_3';
+      if (current === 'STATE_3') {
+        if (statesMap?.['STATE_4']) return 'STATE_4';
+        if (statesMap?.['COMPLETED']) return 'COMPLETED';
+      }
+      return null;
+    };
+    
+    const nextState = computeNext();
+    const isFinal = (code: string | null) => {
+      if (!code) return false;
+      const statesMap: Record<string, IStateDefinition> | undefined = (groupDef?.states as any);
+      const st = statesMap?.[code];
+      return st?.type === 'FINAL';
+    };
+    
+    // Prefer workflow execution endpoint; fallback to finish API if cannot determine
+    const useAdvanceApi = !!nextState;
+    const url = useAdvanceApi ? apiPath('/api/staff/console/start-process') : apiPath('/api/staff/queue/finish');
+    const payload: any = useAdvanceApi
+      ? { docNo: currentQueue.docNo, industry: workflow.industry }
+      : { docNo: currentQueue.docNo };
     const startTime = performance.now();
-    console.groupCollapsed(`🟠 POST ${url} (START PROCESS -> FINISH)`);
+    console.groupCollapsed(`🟠 POST ${url} (START PROCESS)`);
     console.log('📤 REQUEST:', { method: 'POST', url, body: payload, timestamp: new Date().toISOString() });
     try {
       const res = await fetch(url, {
@@ -499,8 +557,19 @@ const OStaffOperations: React.FC = () => {
         headers: { 'content-type': res.headers.get('content-type') }
       });
       if (res.ok) {
-        console.log('✅ SUCCESS: Updated to FINISH');
-        setCurrentQueue(null);
+        const data = await res.json().catch(() => ({}));
+        const newState = useAdvanceApi ? nextState : 'FINAL';
+        console.log('✅ SUCCESS:', { newState, response: data });
+        
+        if (useAdvanceApi) {
+          if (isFinal(newState)) {
+            setCurrentQueue(null);
+          } else {
+            setCurrentQueue((prev: any | null) => prev ? { ...prev, status: newState as string } : prev);
+          }
+        } else {
+          setCurrentQueue(null);
+        }
         try { await fetchQueues(); } catch {}
       } else {
         const errorData = await res.json().catch(() => null);
@@ -907,10 +976,10 @@ const OStaffOperations: React.FC = () => {
           <div className="grid grid-cols-2 gap-4">
             <button 
               onClick={handleCallNext}
-              disabled={currentQueue?.status === 'CALLING'}
-              title={currentQueue?.status === 'CALLING' ? 'มีคิวกำลังถูกเรียกอยู่ กรุณาสิ้นสุดก่อน' : undefined}
+              disabled={!!currentQueue}
+              title={currentQueue ? 'มีคิวค้างอยู่ใน Now Calling กรุณาสิ้นสุดก่อน' : undefined}
               className={`h-32 rounded-2xl text-white shadow-lg flex flex-col items-center justify-center gap-2 transition-all active:scale-95 ${
-                (currentQueue?.status === 'CALLING')
+                currentQueue
                   ? 'bg-gray-400 cursor-not-allowed opacity-60'
                   : (selectedQueueDocNo
                       ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 shadow-purple-600/20'
