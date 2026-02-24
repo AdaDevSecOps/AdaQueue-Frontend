@@ -520,7 +520,6 @@ const OStaffOperations: React.FC = () => {
       if (current === 'STATE_2' && statesMap?.['STATE_3']) return 'STATE_3';
       if (current === 'STATE_3') {
         if (statesMap?.['STATE_4']) return 'STATE_4';
-        if (statesMap?.['COMPLETED']) return 'COMPLETED';
       }
       return null;
     };
