@@ -104,10 +104,12 @@ const ODisplayBoard: React.FC = () => {
               refId: q.refId || embedded.counter || '',
               refType: q.refType || '',
               checkInTime: q.checkInTime || new Date().toISOString(),
+              queueDate: q.date,
               counter: embedded.counter ?? '-'
             };
           });
-          mapped.sort((a: any, b: any) => new Date(a.checkInTime).getTime() - new Date(b.checkInTime).getTime());
+          // Sort oldest-first using queueDate, fallback to checkInTime
+          mapped.sort((a: any, b: any) => new Date(a.queueDate).getTime() - new Date(b.queueDate).getTime());
           console.log('✅ SUCCESS: Mapped', mapped.length, 'queues');
           console.groupEnd();
           setQueues(mapped);
@@ -369,6 +371,20 @@ const ODisplayBoard: React.FC = () => {
       }
 
       // ─── Business Type 2: 3 Fixed Columns ──────────────────────────────────
+
+      // คำนวณ active statuses แบบ dynamic จาก NORMAL states ของทุก service group ที่ visible
+      // ครอบคลุม STATE_2, STATE_3, STATE_N ทุกตัวโดยอัตโนมัติ
+      const baseActiveStatuses = ['CALLING', 'SERVING', 'IN_PROGRESS', 'IN_ROOM'];
+      const normalStateCodes = serviceGroups
+        .filter(sg => visibleGroupCodes.includes(sg.code))
+        .flatMap(sg => Object.entries(sg.states || {}))
+        .filter(([, stateData]: [string, any]) => stateData?.type === 'NORMAL')
+        .map(([code]) => code);
+      const activeStatuses = Array.from(new Set([...baseActiveStatuses, ...normalStateCodes]));
+
+      const isActiveQueue = (q: any) =>
+        activeStatuses.includes(q.status) && visibleGroupCodes.includes(q.serviceGroup);
+
       return (
         <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 p-2">
           <ResetButton />
@@ -382,10 +398,7 @@ const ODisplayBoard: React.FC = () => {
 
             {/* Column 2: คิวที่กำลังดำเนินการ */}
             <OQueueBoard
-              queues={queues.filter(q => {
-                const active = ['CALLING', 'SERVING', 'IN_PROGRESS', 'IN_ROOM', 'STATE_2'];
-                return active.includes(q.status) && visibleGroupCodes.includes(q.serviceGroup);
-              })}
+              queues={queues.filter(isActiveQueue)}
               leftTitle="คิวที่กำลังดำเนินการ"
               title="คิวที่กำลังดำเนินการ"
               displayMode="all"
@@ -394,10 +407,7 @@ const ODisplayBoard: React.FC = () => {
             {/* Column 3: ช่องบริการ */}
             <OQueueBoard
               queues={queues
-                .filter(q => {
-                  const active = ['CALLING', 'SERVING', 'IN_PROGRESS', 'IN_ROOM', 'STATE_2'];
-                  return active.includes(q.status) && visibleGroupCodes.includes(q.serviceGroup);
-                })
+                .filter(isActiveQueue)
                 .map(q => {
                   const label = q.refId || q.counter || q.refType || getServiceGroupName(q.serviceGroup);
                   return { ...q, queueNo: label, ticketNo: '' };
