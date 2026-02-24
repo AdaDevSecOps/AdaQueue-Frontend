@@ -62,6 +62,7 @@ interface IProfileOption {
   code: string;
   name: string;
   agnCode?: string;
+  businessType?: string;
   description?: string;
   config?: any;
 }
@@ -102,7 +103,7 @@ const OWorkflowDesigner: React.FC = () => {
   const [isCreateProfileModalOpen, setIsCreateProfileModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
   const [editingProfile, setEditingProfile] = useState<IProfileOption | null>(null);
-  const [newProfileData, setNewProfileData] = useState({ name: '', description: '', agnCode: '' });
+  const [newProfileData, setNewProfileData] = useState({ name: '', description: '', agnCode: '', businessType: '1' });
 
   // Queue Detail Sub-tabs
   const [queueDetailTab, setQueueDetailTab] = useState<'general' | 'workflow' | 'settings'>('workflow');
@@ -148,6 +149,7 @@ const OWorkflowDesigner: React.FC = () => {
                     code: p.code,
                     name: p.name,
                     agnCode: p.agnCode,
+                    businessType: p.businessType || '1',
                     description: p.config?.description || '',
                     config: p.config // Store full config
                 }));
@@ -272,7 +274,7 @@ const OWorkflowDesigner: React.FC = () => {
   // --- CRUD Operations ---
 
   const handleAddProfile = () => {
-    setNewProfileData({ name: '', description: '', agnCode: '' });
+    setNewProfileData({ name: '', description: '', agnCode: '', businessType: '1' });
     setModalMode('create');
     setEditingProfile(null);
     setIsCreateProfileModalOpen(true);
@@ -284,7 +286,8 @@ const OWorkflowDesigner: React.FC = () => {
     setNewProfileData({ 
         name: profile.name, 
         description: profile.description || '',
-        agnCode: profile.agnCode || '' 
+        agnCode: profile.agnCode || '',
+        businessType: profile.businessType || '1'
     });
     setModalMode('edit');
     setEditingProfile(profile);
@@ -364,6 +367,7 @@ const OWorkflowDesigner: React.FC = () => {
                  profileId: profileCode,
                  profileName: newProfileData.name,
                  agnCode: newProfileData.agnCode,
+                 businessType: newProfileData.businessType,
                  description: newProfileData.description
              };
         } else {
@@ -372,6 +376,7 @@ const OWorkflowDesigner: React.FC = () => {
                  profileId: profileCode,
                  profileName: newProfileData.name,
                  agnCode: newProfileData.agnCode,
+                 businessType: newProfileData.businessType,
                  description: newProfileData.description,
                  serviceGroups: [],
                  servicePoints: [],
@@ -385,6 +390,7 @@ const OWorkflowDesigner: React.FC = () => {
             name: newProfileData.name,
             workflowCode: `WF-${profileCode}`,
             agnCode: newProfileData.agnCode,
+            businessType: newProfileData.businessType,
             config: configToSave
         };
 
@@ -1711,6 +1717,17 @@ const OWorkflowDesigner: React.FC = () => {
                             rows={3}
                             className="w-full p-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                         />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Business Type</label>
+                        <select 
+                            value={newProfileData.businessType}
+                            onChange={(e) => setNewProfileData({...newProfileData, businessType: e.target.value})}
+                            className="w-full p-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                        >
+                            <option value="1">ร้านอาหาร</option>
+                            <option value="2">ธนาคาร</option>
+                        </select>
                     </div>
                 </div>
 
