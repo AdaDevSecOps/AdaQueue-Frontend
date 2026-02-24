@@ -38,15 +38,31 @@ export const OIssueTicket: React.FC<IIssueTicketProps> = ({ category, onConfirm,
   // Config State
   const [headerTitle, setHeaderTitle] = useState('AdaQueue');
   const [categoryName, setCategoryName] = useState(category);
+  const [agnCode, setAgnCode] = useState('AGN');
 
   // Load Configuration
   useEffect(() => {
-    try {
-        const activeProfileId = localStorage.getItem('adaqueue_selected_profile');
-        if (activeProfileId) {
-            const workflowJson = localStorage.getItem(`adaqueue_workflow_${activeProfileId}`);
-            if (workflowJson) {
-                const workflow: IWorkflowDefinition = JSON.parse(workflowJson);
+    const loadConfig = async () => {
+      try {
+          const activeProfileId = localStorage.getItem('adaqueue_selected_profile');
+          if (activeProfileId) {
+              // Fetch profile details for agnCode
+              try {
+                const profileUrl = apiPath(`/api/profile/${activeProfileId}`);
+                const profileRes = await fetch(profileUrl);
+                if (profileRes.ok) {
+                    const profileData = await profileRes.json();
+                    if (profileData.agnCode) {
+                        setAgnCode(profileData.agnCode);
+                    }
+                }
+              } catch (err) {
+                console.error("Failed to fetch profile details", err);
+              }
+
+              const workflowJson = localStorage.getItem(`adaqueue_workflow_${activeProfileId}`);
+              if (workflowJson) {
+                  const workflow: IWorkflowDefinition = JSON.parse(workflowJson);
                 
                 // 1. Resolve Header Title (Kiosk Title > Profile Name > AdaQueue)
                 let title = workflow.profileName || 'AdaQueue';
@@ -80,9 +96,11 @@ export const OIssueTicket: React.FC<IIssueTicketProps> = ({ category, onConfirm,
                 }
             }
         }
-    } catch (e) {
-        console.error("Failed to load config for ticket screen", e);
-    }
+      } catch (e) {
+          console.error("Failed to load config for ticket screen", e);
+      }
+    };
+    loadConfig();
   }, [category]);
 
   // Update time for the ticket preview
@@ -100,7 +118,6 @@ export const OIssueTicket: React.FC<IIssueTicketProps> = ({ category, onConfirm,
     
     const profileId = localStorage.getItem('adaqueue_selected_profile') || undefined;
     const kioskCode = localStorage.getItem('adaqueue_kiosk_code') || 'KIOSK';
-    const agnCode = localStorage.getItem('adaqueue_agn_code') || 'AGN';
     const payload = {
       customerName: phone ? `Phone:${phone}` : 'Walk-in',
       tel: phone || '',
