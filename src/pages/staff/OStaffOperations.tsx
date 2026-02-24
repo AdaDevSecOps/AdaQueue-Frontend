@@ -494,6 +494,34 @@ const OStaffOperations: React.FC = () => {
     }
   };
 
+  const getNextStepInfo = () => {
+    if (!currentQueue || !workflow) return null;
+    const groupDef = workflow.serviceGroups.find(g => g.code === currentQueue.group);
+    const statesMap = groupDef?.states as Record<string, IStateDefinition> | undefined;
+    if (!statesMap) return null;
+
+    const currentStatus = currentQueue.status || '';
+    let nextCode: string | null = null;
+
+    // Logic based on original handleStartProcess progression
+    if (currentStatus === 'CALLING' || currentStatus === 'WAITING' || !currentStatus) {
+      if (statesMap['STATE_2']) nextCode = 'STATE_2';
+      else {
+        const normals = Object.values(statesMap).filter(s => s.type === 'NORMAL');
+        if (normals.length > 0) nextCode = (normals[0] as any).code;
+      }
+    } else if (currentStatus === 'STATE_2') {
+      if (statesMap['STATE_3']) nextCode = 'STATE_3';
+    } else if (currentStatus === 'STATE_3') {
+      if (statesMap['STATE_4']) nextCode = 'STATE_4';
+    }
+
+    if (nextCode && statesMap[nextCode]) {
+      return { code: nextCode, label: statesMap[nextCode].label };
+    }
+    return null;
+  };
+
   // Handle Start Process: STATE_2 -> STATE_3 -> FINAL
   const handleStartProcess = async () => {
     if (!currentQueue?.docNo || !workflow?.industry) {
@@ -501,39 +529,11 @@ const OStaffOperations: React.FC = () => {
       return;
     }
 
-    const resolveServiceGroupCode = () => {
-      if (selectedQueueDocNo) {
-        const q = queueList.find((x: any) => x.no === selectedQueueDocNo);
-        return q?.group;
-      }
-      const oldest = filteredQueues[0];
-      if (oldest?.group) return oldest.group;
-      return selectedServiceGroup === 'ALL' ? undefined : selectedServiceGroup;
-    };
-
-    const groupCode = currentQueue?.group ?? resolveServiceGroupCode();
-    const groupDef = workflow?.serviceGroups?.find(g => g.code === groupCode);
-    
-    const current = currentQueue.status || '';
-    const computeNext = () => {
-      const statesMap: Record<string, IStateDefinition> | undefined = (groupDef?.states as any);
-      if (current === 'STATE_2' && statesMap?.['STATE_3']) return 'STATE_3';
-      if (current === 'STATE_3') {
-        if (statesMap?.['STATE_4']) return 'STATE_4';
-      }
-      return null;
-    };
-    
-    const nextState = computeNext();
-    const isFinal = (code: string | null) => {
-      if (!code) return false;
-      const statesMap: Record<string, IStateDefinition> | undefined = (groupDef?.states as any);
-      const st = statesMap?.[code];
-      return st?.type === 'FINAL';
-    };
+    const nextInfo = getNextStepInfo();
+    const nextState = nextInfo?.code || 'FINISH';
     
     // Prefer workflow execution endpoint; fallback to finish API if cannot determine
-    const useAdvanceApi = !!nextState;
+    const useAdvanceApi = !!nextInfo;
     const url = useAdvanceApi ? apiPath('/api/staff/console/start-process') : apiPath('/api/staff/queue/finish');
     const payload: any = useAdvanceApi
       ? { docNo: currentQueue.docNo, industry: workflow.industry }
@@ -557,14 +557,23 @@ const OStaffOperations: React.FC = () => {
       });
       if (res.ok) {
         const data = await res.json().catch(() => ({}));
+        
+        const isFinal = (code: string | null) => {
+          if (!code) return false;
+          const groupDef = workflow.serviceGroups.find(g => g.code === currentQueue.group);
+          const statesMap = groupDef?.states as Record<string, IStateDefinition> | undefined;
+          const st = statesMap?.[code];
+          return st?.type === 'FINAL';
+        };
+
         const newState = useAdvanceApi ? nextState : 'FINAL';
         console.log('✅ SUCCESS:', { newState, response: data });
         
         if (useAdvanceApi) {
-          if (isFinal(newState)) {
+          if (isFinal(nextState)) {
             setCurrentQueue(null);
           } else {
-            setCurrentQueue((prev: any | null) => prev ? { ...prev, status: newState as string } : prev);
+            setCurrentQueue((prev: any | null) => prev ? { ...prev, status: nextState as string } : prev);
           }
         } else {
           setCurrentQueue(null);
@@ -1013,7 +1022,9 @@ const OStaffOperations: React.FC = () => {
                   : 'bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/20'
               }`}>
               <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-              <span className="text-lg font-bold">START PROCESS</span>
+              <span className="text-lg font-bold">
+                {getNextStepInfo()?.label.toUpperCase() || 'FINISH PROCESS'}
+              </span>
             </button>
             
             <button className="h-24 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-amber-600 dark:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/10 flex flex-col items-center justify-center gap-1 transition">
