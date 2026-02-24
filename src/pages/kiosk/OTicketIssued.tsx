@@ -72,7 +72,7 @@ const OTicketIssued: React.FC = () => {
               {new Date(queue.date).toLocaleString('en-US', { hour: '2-digit', minute: '2-digit', year: 'numeric', month: 'long', day: 'numeric' })}
             </p>
             <div className="mt-6">
-              <button onClick={() => navigate('/kiosk/issue')} className="px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold">กลับหน้าเลือกบริการ</button>
+              <button onClick={() => navigate('/kiosk')} className="px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold">กลับหน้าเลือกบริการ</button>
             </div>
           </div>
         )}

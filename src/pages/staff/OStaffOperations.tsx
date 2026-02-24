@@ -515,7 +515,7 @@ const OStaffOperations: React.FC = () => {
       .filter(([, s]) => s.type === 'FINAL')
       .sort(([a], [b]) => a.localeCompare(b, undefined, { numeric: true }));
 
-    const orderedStates = [...normalStates, ...finalStates];
+    const orderedStates = [...normalStates, ...finalStates]; // eslint-disable-line @typescript-eslint/no-unused-vars
 
     let nextCode: string | null = null;
 

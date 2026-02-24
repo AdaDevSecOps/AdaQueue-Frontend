@@ -39,6 +39,7 @@ const ODisplayBoard: React.FC = () => {
   const [availableProfiles, setAvailableProfiles] = useState<IProfileOption[]>([]);
   const [availableBoards, setAvailableBoards] = useState<IDisplayBoardDefinition[]>([]);
   const [serviceGroups, setServiceGroups] = useState<IServiceGroup[]>([]);
+  const [businessType, setBusinessType] = useState<string>('1'); // '1' = flow steps, '2' = 3-column fixed
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [queues, setQueues] = useState<any[]>([]); // Real Queue Data
@@ -241,10 +242,13 @@ const ODisplayBoard: React.FC = () => {
             // Save workflow data including serviceGroups
             localStorage.setItem(`adaqueue_workflow_${profileId}`, JSON.stringify(workflow));
             
-            // Store serviceGroups for later use
+            // Store serviceGroups and businessType for later use
             if (workflow.serviceGroups) {
                 setServiceGroups(workflow.serviceGroups);
             }
+
+            // businessType '1' = flow steps columns, '2' = 3-column fixed layout
+            setBusinessType(workflow.businessType || '1');
             
             setLoading(false);
             return workflow.displayBoards || [];
@@ -296,114 +300,114 @@ const ODisplayBoard: React.FC = () => {
       // Helper function to get service group name from code
       const getServiceGroupName = (code: string): string => {
           const group = serviceGroups.find(sg => sg.code === code);
-          return group?.name || code; // Fallback to code if name not found
+          return group?.name || code;
       };
 
-      // Check if single service group mode (state-based columns)
-      const isSingleGroupMode = visibleGroupCodes.length === 1;
-      
-      if (isSingleGroupMode) {
-          // Single Service Group Mode: Display by states
+      // Hidden reset button (shared)
+      const ResetButton = () => (
+        <div className="absolute top-0 left-0 w-16 h-16 z-50 opacity-0 hover:opacity-100 transition-opacity">
+          <button
+            onClick={handleResetConfig}
+            className="bg-red-600 text-white text-xs p-2 rounded shadow-lg m-2 hover:bg-red-700 transition-colors"
+          >
+            Reset Config
+          </button>
+        </div>
+      );
+
+      // ─── Business Type 1: Flow Steps Columns ───────────────────────────────
+      if (businessType === '1') {
           const singleGroupCode = visibleGroupCodes[0];
-          // Find the service group that matches the visible code
-          const singleGroup = serviceGroups.find(sg => sg.code === singleGroupCode);
-          
+          const singleGroup = singleGroupCode
+            ? serviceGroups.find(sg => sg.code === singleGroupCode)
+            : null;
+
+          // Fallback: if no state info, show plain waiting list
           if (!singleGroup || !singleGroup.states) {
-              return <div className="min-h-screen bg-gray-900 flex items-center justify-center text-white">Invalid service group configuration</div>;
+              return (
+                <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 p-2">
+                  <ResetButton />
+                  <div className="flex gap-2 h-full">
+                    <OQueueBoard
+                      queues={queues.filter(q => visibleGroupCodes.includes(q.serviceGroup))}
+                      leftTitle="Waiting"
+                      title="Waiting"
+                    />
+                  </div>
+                </div>
+              );
           }
 
-          // Get all state codes from the service group
-          const stateEntries = Object.entries(singleGroup.states);
-          
+          // แสดงเฉพาะ states ที่ไม่ใช่ FINAL (ไม่แสดง column เสร็จสิ้น)
+          const stateEntries = Object.entries(singleGroup.states)
+            .filter(([, stateData]: [string, any]) => stateData?.type !== 'FINAL');
+
           return (
             <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 p-2">
-                 {/* Hidden Reset Button (Top Left corner hover) */}
-                 <div className="absolute top-0 left-0 w-16 h-16 z-50 opacity-0 hover:opacity-100 transition-opacity">
-                    <button 
-                        onClick={handleResetConfig}
-                        className="bg-red-600 text-white text-xs p-2 rounded shadow-lg m-2 hover:bg-red-700 transition-colors"
-                    >
-                        Reset Config
-                    </button>
-                 </div>
-
-                 {/* State-Based Columns */}
-                 <div className="flex gap-2 h-full">
-                     {stateEntries.map(([stateCode, stateData]: [string, any]) => {
-                        // Match by state code (robust): use stateData.code if present; allow prefix match
-                        const code = (stateData?.code || stateCode || '').toString().toUpperCase();
-                        // Optional: restrict to selected service group
-                        const stateQueues = queues.filter(q => {
-                            const s = (q.status || '').toString().toUpperCase();
-                            const inGroup = visibleGroupCodes.length === 1 ? (q.serviceGroup === visibleGroupCodes[0]) : true;
-                            return inGroup && (s === code || s.startsWith(code));
-                        });
-                         
-                         return (
-                             <OQueueBoard 
-                                 key={stateCode}
-                                 queues={stateQueues}
-                                 leftTitle={stateData.label || stateCode}
-                                 title={stateData.label || stateCode}
-                                 displayMode="all"
-                             />
-                         );
-                     })}
-                 </div>
+              <ResetButton />
+              <div className="flex gap-2 h-full">
+                {stateEntries.map(([stateCode, stateData]: [string, any]) => {
+                  const code = (stateData?.code || stateCode || '').toString().toUpperCase();
+                  const stateQueues = queues.filter(q => {
+                    const s = (q.status || '').toString().toUpperCase();
+                    const inGroup = visibleGroupCodes.length === 1 ? (q.serviceGroup === visibleGroupCodes[0]) : true;
+                    return inGroup && (s === code || s.startsWith(code));
+                  });
+                  return (
+                    <OQueueBoard
+                      key={stateCode}
+                      queues={stateQueues}
+                      leftTitle={stateData.label || stateCode}
+                      title={stateData.label || stateCode}
+                      displayMode="all"
+                    />
+                  );
+                })}
+              </div>
             </div>
           );
       }
 
-      // Multi Service Group Mode: Display 3 fixed columns
+      // ─── Business Type 2: 3 Fixed Columns ──────────────────────────────────
       return (
         <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 p-2">
-             {/* Hidden Reset Button (Top Left corner hover) */}
-             <div className="absolute top-0 left-0 w-16 h-16 z-50 opacity-0 hover:opacity-100 transition-opacity">
-                <button 
-                    onClick={handleResetConfig}
-                    className="bg-red-600 text-white text-xs p-2 rounded shadow-lg m-2 hover:bg-red-700 transition-colors"
-                >
-                    Reset Config
-                </button>
-             </div>
+          <ResetButton />
+          <div className="flex gap-2 h-full">
+            {/* Column 1: Waiting Queue */}
+            <OQueueBoard
+              queues={queues.filter(q => visibleGroupCodes.includes(q.serviceGroup))}
+              leftTitle="Waiting Queue"
+              title="Waiting Queue"
+            />
 
-             {/* Three Fixed Columns */}
-             <div className="flex gap-2 h-full">
-                 {/* Column 1: Waiting Queue - Filter by visibleServiceGroups */}
-                 <OQueueBoard 
-                     queues={queues.filter(q => visibleGroupCodes.includes(q.serviceGroup))}
-                     leftTitle="Waiting Queue"
-                     title="Waiting Queue"
-                 />
+            {/* Column 2: คิวที่กำลังดำเนินการ */}
+            <OQueueBoard
+              queues={queues.filter(q => {
+                const active = ['CALLING', 'SERVING', 'IN_PROGRESS', 'IN_ROOM', 'STATE_2'];
+                return active.includes(q.status) && visibleGroupCodes.includes(q.serviceGroup);
+              })}
+              leftTitle="คิวที่กำลังดำเนินการ"
+              title="คิวที่กำลังดำเนินการ"
+              displayMode="all"
+            />
 
-                {/* Column 2: คิวที่กำลังดำเนินการ - แสดงเฉพาะสถานะที่ยังให้บริการ */}
-                 <OQueueBoard 
-                    queues={queues.filter(q => {
-                        const active = ['CALLING', 'SERVING', 'IN_PROGRESS', 'IN_ROOM'];
-                        return active.includes(q.status) && visibleGroupCodes.includes(q.serviceGroup);
-                    })}
-                     leftTitle="คิวที่กำลังดำเนินการ"
-                     title="คิวที่กำลังดำเนินการ"
-                     displayMode="all"
-                 />
-
-                {/* Column 3: ช่องบริการ - แสดงชื่อช่องบริการของคิวที่ยังให้บริการ */}
-                 <OQueueBoard 
-                    queues={queues
-                        .filter(q => {
-                            const active = ['CALLING', 'SERVING', 'IN_PROGRESS', 'IN_ROOM'];
-                            return active.includes(q.status) && visibleGroupCodes.includes(q.serviceGroup);
-                        })
-                        .map(q => {
-                            const label = q.refId || q.counter || q.refType || getServiceGroupName(q.serviceGroup);
-                            return { ...q, queueNo: label, ticketNo: '' };
-                        })
-                    }
-                     leftTitle="ช่องบริการ"
-                     title="ช่องบริการ"
-                     displayMode="all"
-                 />
-             </div>
+            {/* Column 3: ช่องบริการ */}
+            <OQueueBoard
+              queues={queues
+                .filter(q => {
+                  const active = ['CALLING', 'SERVING', 'IN_PROGRESS', 'IN_ROOM', 'STATE_2'];
+                  return active.includes(q.status) && visibleGroupCodes.includes(q.serviceGroup);
+                })
+                .map(q => {
+                  const label = q.refId || q.counter || q.refType || getServiceGroupName(q.serviceGroup);
+                  return { ...q, queueNo: label, ticketNo: '' };
+                })
+              }
+              leftTitle="ช่องบริการ"
+              title="ช่องบริการ"
+              displayMode="all"
+            />
+          </div>
         </div>
       );
   }
