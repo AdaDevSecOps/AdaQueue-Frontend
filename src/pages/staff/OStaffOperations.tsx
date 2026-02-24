@@ -284,8 +284,9 @@ const OStaffOperations: React.FC = () => {
           const qData = q.data || (q.dataString ? JSON.parse(q.dataString) : {});
           const groupCode = qData.serviceGroup || qData.queueType || 'General';
           const groupName = workflow?.serviceGroups?.find(g => g.code === groupCode)?.name || groupCode || 'General';
-          const checkIn = new Date(q.checkInTime || q.date || Date.now()).getTime();
-          const waitedMs = Date.now() - checkIn;
+          const checkIn = new Date(q.date || q.checkInTime || Date.now()).getTime();
+          const dateExpire = new Date(q.checkInTime).getTime();
+          const waitedMs = Date.now() - dateExpire;
           const waitedMin = Math.max(0, Math.floor(waitedMs / 60000));
           return {
             no: q.docNo || `${groupCode}-${String(q.queueNo).padStart(3,'0')}`,
@@ -300,6 +301,7 @@ const OStaffOperations: React.FC = () => {
             state: q.status || 'WAITING',
             ticketNo: q.ticketNo,
             created: checkIn,
+            dateExpire: dateExpire,
             queueDate: new Date(q.date || Date.now()).toLocaleDateString(),
           };
         });
@@ -591,6 +593,49 @@ const OStaffOperations: React.FC = () => {
     }
   };
 
+  // Handle Skip Ticket: Change status to WAITING and reset date
+  const handleSkipTicket = async () => {
+    if (!currentQueue?.docNo) {
+      console.warn('⚠️ ไม่มีคิวที่กำลังเรียก');
+      return;
+    }
+
+    const url = apiPath('/api/staff/console/skip');
+    const payload = { docNo: currentQueue.docNo };
+    const startTime = performance.now();
+    
+    console.groupCollapsed(`🟠 POST ${url} (SKIP TICKET)`);
+    console.log('📤 REQUEST:', { method: 'POST', url, body: payload, timestamp: new Date().toISOString() });
+    
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      
+      const duration = Math.round(performance.now() - startTime);
+      console.log('📥 RESPONSE:', {
+        status: res.status,
+        statusText: res.statusText,
+        ok: res.ok,
+        duration: `${duration}ms`
+      });
+
+      if (res.ok) {
+        console.log('✅ SUCCESS: Ticket skipped');
+        setCurrentQueue(null);
+        try { await fetchQueues(); } catch {}
+      } else {
+        console.error('❌ FAILED:', res.status, res.statusText);
+      }
+    } catch (e) {
+      console.error('❌ ERROR:', e);
+    } finally {
+      console.groupEnd();
+    }
+  };
+
   // Render: Loading
   if (error) {
       return (
@@ -743,7 +788,7 @@ const OStaffOperations: React.FC = () => {
   const waitingCount = filteredQueues.filter(q => q.state === 'WAITING' || q.state === '').length;
   const nearSlaCount = filteredQueues.filter(q => {
     if (q.state !== 'WAITING' && q.state !== '') return false;
-    const waitedMs = Date.now() - (q.created || Date.now());
+    const waitedMs = Date.now() - (q.dateExpire || Date.now());
     return waitedMs > NEAR_SLA_MINUTES * 60_000;
   }).length;
 
@@ -879,7 +924,6 @@ const OStaffOperations: React.FC = () => {
                   <th className="px-4 py-3">Channel</th>
                   <th className="px-4 py-3">Status</th>
                   <th className="px-4 py-3">SLA Timer</th>
-                  {/* <th className="px-4 py-3 text-right">Action</th> */}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
@@ -917,21 +961,6 @@ const OStaffOperations: React.FC = () => {
                       }`}>
                         {queue.timer} {queue.isExpired && <span className="text-xs font-bold ml-1">(EXPIRED)</span>}
                       </td>
-                      {/* <td className="px-4 py-4 text-right">
-                        <button 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedQueueDocNo(isSelected ? null : queue.no);
-                          }}
-                          className={`text-sm font-medium transition-colors ${
-                            isSelected
-                              ? 'text-blue-600 dark:text-blue-400 underline'
-                              : 'text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400'
-                          }`}
-                        >
-                          {isSelected ? 'Deselect' : 'Select'}
-                        </button>
-                      </td> */}
                     </tr>
                   );
                 })}
@@ -1027,7 +1056,16 @@ const OStaffOperations: React.FC = () => {
               </span>
             </button>
             
-            <button className="h-24 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-amber-600 dark:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/10 flex flex-col items-center justify-center gap-1 transition">
+            <button 
+              onClick={handleSkipTicket}
+              disabled={!currentQueue}
+              title={!currentQueue ? 'ไม่มีคิวที่กำลังเรียก' : undefined}
+              className={`h-24 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-amber-600 dark:text-amber-500 flex flex-col items-center justify-center gap-1 transition ${
+                !currentQueue 
+                  ? 'opacity-40 cursor-not-allowed' 
+                  : 'hover:bg-amber-50 dark:hover:bg-amber-900/10'
+              }`}
+            >
               <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11.933 12.8a1 1 0 000-1.6L6.6 7.2A1 1 0 005 8v8a1 1 0 001.6.8l5.333-4zM19.933 12.8a1 1 0 000-1.6l-5.333-4A1 1 0 0013 8v8a1 1 0 001.6.8l5.333-4z"></path></svg>
               <span className="font-bold text-sm">SKIP TICKET</span>
             </button>
