@@ -503,19 +503,37 @@ const OStaffOperations: React.FC = () => {
     if (!statesMap) return null;
 
     const currentStatus = currentQueue.status || '';
+
+    // เรียง NORMAL states ตาม key (STATE_2, STATE_3, STATE_4, STATE_5, ...)
+    // รองรับจำนวน step ที่ยืดหยุ่น ไม่ hardcode
+    const normalStates = Object.entries(statesMap)
+      .filter(([, s]) => s.type === 'NORMAL')
+      .sort(([a], [b]) => a.localeCompare(b, undefined, { numeric: true }));
+
+    // รวม FINAL states ไว้ด้วย เพื่อรองรับ step สุดท้าย
+    const finalStates = Object.entries(statesMap)
+      .filter(([, s]) => s.type === 'FINAL')
+      .sort(([a], [b]) => a.localeCompare(b, undefined, { numeric: true }));
+
+    const orderedStates = [...normalStates, ...finalStates];
+
     let nextCode: string | null = null;
 
-    // Logic based on original handleStartProcess progression
     if (currentStatus === 'CALLING' || currentStatus === 'WAITING' || !currentStatus) {
-      if (statesMap['STATE_2']) nextCode = 'STATE_2';
-      else {
-        const normals = Object.values(statesMap).filter(s => s.type === 'NORMAL');
-        if (normals.length > 0) nextCode = (normals[0] as any).code;
+      // เริ่มต้น: ไปที่ NORMAL state แรก
+      if (normalStates.length > 0) nextCode = normalStates[0][0];
+    } else {
+      // หา index ของ currentStatus ใน NORMAL states แล้วเอาตัวถัดไป
+      const normalIdx = normalStates.findIndex(([code]) => code === currentStatus);
+      if (normalIdx !== -1) {
+        // มี state ถัดไปใน NORMAL หรือไม่
+        if (normalIdx < normalStates.length - 1) {
+          nextCode = normalStates[normalIdx + 1][0];
+        } else if (finalStates.length > 0) {
+          // NORMAL หมดแล้ว → ไป FINAL state แรก
+          nextCode = finalStates[0][0];
+        }
       }
-    } else if (currentStatus === 'STATE_2') {
-      if (statesMap['STATE_3']) nextCode = 'STATE_3';
-    } else if (currentStatus === 'STATE_3') {
-      if (statesMap['STATE_4']) nextCode = 'STATE_4';
     }
 
     if (nextCode && statesMap[nextCode]) {
@@ -533,12 +551,18 @@ const OStaffOperations: React.FC = () => {
 
     const nextInfo = getNextStepInfo();
     const nextState = nextInfo?.code || 'FINISH';
+
+    // ถ้า state ถัดไปเป็น FINAL ให้ส่ง 'FINISH' แทน
+    const groupDef = workflow.serviceGroups.find(g => g.code === currentQueue.group);
+    const statesMap = groupDef?.states as Record<string, IStateDefinition> | undefined;
+    const isFinalState = nextInfo ? statesMap?.[nextInfo.code]?.type === 'FINAL' : false;
+    const targetStatus = isFinalState ? 'FINISH' : nextState;
     
     // Prefer workflow execution endpoint; fallback to finish API if cannot determine
     const useAdvanceApi = !!nextInfo;
     const url = useAdvanceApi ? apiPath('/api/staff/console/start-process') : apiPath('/api/staff/queue/finish');
     const payload: any = useAdvanceApi
-      ? { docNo: currentQueue.docNo, industry: workflow.industry }
+      ? { docNo: currentQueue.docNo, industry: workflow.industry, targetStatus }
       : { docNo: currentQueue.docNo };
     const startTime = performance.now();
     console.groupCollapsed(`🟠 POST ${url} (START PROCESS)`);
