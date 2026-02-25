@@ -72,6 +72,7 @@ const OStaffOperations: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [queueList, setQueueList] = useState<any[]>([]); // Real Data
+  const [upcomingTab, setUpcomingTab] = useState<'waiting' | 'inprogress'>('waiting');
 
   // Startup State
   const [startupStep, setStartupStep] = useState<'init' | 'select_profile' | 'select_point' | 'ready'>('init');
@@ -833,34 +834,62 @@ const OStaffOperations: React.FC = () => {
     return [{ code: 'ALL', name: 'All Services' }, ...baseGroups];
   })();
 
+  // Collect all NORMAL-type state codes from all service groups in the workflow
+  const normalStateCodes = (() => {
+    if (!workflow) return new Set<string>();
+    const codes = new Set<string>();
+    workflow.serviceGroups.forEach(g => {
+      const statesMap = g.states as Record<string, IStateDefinition> | undefined;
+      if (statesMap) {
+        Object.values(statesMap).forEach(s => {
+          if (s.type === 'NORMAL') codes.add(s.code);
+        });
+      }
+    });
+    return codes;
+  })();
+
+  // Helper: apply service group + service point filters (shared by both tabs)
+  const applyBaseFilters = (list: any[]) => {
+    let result = list;
+    if (selectedServiceGroup !== 'ALL') {
+      result = result.filter(q => q.group === selectedServiceGroup);
+    }
+    if (workflow && selectedPointCode) {
+      const currentPoint = workflow.servicePoints.find(p => p.code === selectedPointCode);
+      if (currentPoint?.serviceGroups && currentPoint.serviceGroups.length > 0) {
+        result = result.filter(q => currentPoint.serviceGroups!.includes(q.group));
+      }
+    }
+    return result;
+  };
+
   // Filter queues based on selected service group AND selected service point focus states
   const filteredQueues = (() => {
-      let result = queueList; // Use Real Data
+      let result = queueList;
 
       // 1. Filter by status: Only WAITING or empty string
       result = result.filter(q => q.state === 'WAITING' || q.state === '');
 
-      // 2. Service Group Filter
-      if (selectedServiceGroup !== 'ALL') {
-          result = result.filter(q => (q.group === selectedServiceGroup));
-      }
+      // 2. Service Group + Point filters
+      result = applyBaseFilters(result);
 
-      // 3. Service Point Focus State & Service Group Filter
-      if (workflow && selectedPointCode) {
-          const currentPoint = workflow.servicePoints.find(p => p.code === selectedPointCode);
-          if (currentPoint) {
-              // For upcoming queue, we only care about service groups, not focus states
-              if (currentPoint.serviceGroups && currentPoint.serviceGroups.length > 0) {
-                  result = result.filter(q => currentPoint.serviceGroups!.includes(q.group));
-              }
-          }
-      }
-
-      // 4. FIFO Sorting (Sort by created time)
+      // 3. FIFO Sorting (Sort by created time)
       result = result.sort((a, b) => a.created - b.created);
 
       return result;
   })();
+
+  // In-Progress queues: state matches any NORMAL-type state in the workflow
+  const inProgressQueues = (() => {
+    let result = queueList.filter(q => normalStateCodes.has(q.state));
+    result = applyBaseFilters(result);
+    result = result.sort((a, b) => a.created - b.created);
+    return result;
+  })();
+
+  // Active list for the current tab
+  const activeQueueList = upcomingTab === 'waiting' ? filteredQueues : inProgressQueues;
 
   const waitingCount = filteredQueues.filter(q => q.state === 'WAITING' || q.state === '').length;
   const nearSlaCount = filteredQueues.filter(q => {
@@ -869,6 +898,19 @@ const OStaffOperations: React.FC = () => {
     return waitedMs > NEAR_SLA_MINUTES * 60_000;
   }).length;
 
+
+  // Helper: look up state label from workflow definition
+  const getStateLabelBadge = (stateCode: string) => {
+    if (!workflow) return <span className="px-2 py-1 rounded text-xs font-bold bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400">{stateCode}</span>;
+    for (const group of workflow.serviceGroups) {
+      const statesMap = group.states as Record<string, IStateDefinition> | undefined;
+      if (statesMap?.[stateCode]) {
+        const label = statesMap[stateCode].label || stateCode;
+        return <span className="px-2 py-1 rounded text-xs font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">{label}</span>;
+      }
+    }
+    return <span className="px-2 py-1 rounded text-xs font-bold bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400">{stateCode}</span>;
+  };
 
   // Helper for Status Badge
   const getStatusBadge = (status: string) => {
@@ -980,15 +1022,51 @@ const OStaffOperations: React.FC = () => {
       <div className="flex-1 overflow-y-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
         
         {/* Left Panel: Upcoming Queue List */}
-        <div className="lg:col-span-5 flex flex-col bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
-          <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-800/50">
-            <h2 className="font-bold text-lg text-gray-800 dark:text-white">Upcoming Queue</h2>
-            <div className="flex gap-2">
-              <button className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg text-gray-500 dark:text-gray-400 transition">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
+        <div className="lg:col-span-7 flex flex-col bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+          {/* Panel Header */}
+          <div className="px-4 pt-4 pb-0 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+            <div className="flex justify-between items-center mb-3">
+              <h2 className="font-bold text-lg text-gray-800 dark:text-white">Upcoming Queue</h2>
+              <div className="flex gap-2">
+                <button className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg text-gray-500 dark:text-gray-400 transition">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
+                </button>
+                <button onClick={fetchQueues} className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg text-gray-500 dark:text-gray-400 transition">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                </button>
+              </div>
+            </div>
+            {/* Tabs */}
+            <div className="flex gap-1">
+              <button
+                onClick={() => setUpcomingTab('waiting')}
+                className={`px-4 py-2 text-sm font-bold rounded-t-lg transition-colors relative ${
+                  upcomingTab === 'waiting'
+                    ? 'text-blue-600 dark:text-blue-400 bg-white dark:bg-gray-800 border-t border-l border-r border-gray-200 dark:border-gray-700 -mb-px z-10'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                }`}
+              >
+                Waiting
+                <span className={`ml-2 px-1.5 py-0.5 text-xs rounded-full ${
+                  upcomingTab === 'waiting'
+                    ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400'
+                    : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
+                }`}>{filteredQueues.length}</span>
               </button>
-              <button className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg text-gray-500 dark:text-gray-400 transition">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+              <button
+                onClick={() => setUpcomingTab('inprogress')}
+                className={`px-4 py-2 text-sm font-bold rounded-t-lg transition-colors relative ${
+                  upcomingTab === 'inprogress'
+                    ? 'text-amber-600 dark:text-amber-400 bg-white dark:bg-gray-800 border-t border-l border-r border-gray-200 dark:border-gray-700 -mb-px z-10'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                }`}
+              >
+                In Progress
+                <span className={`ml-2 px-1.5 py-0.5 text-xs rounded-full ${
+                  upcomingTab === 'inprogress'
+                    ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400'
+                    : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
+                }`}>{inProgressQueues.length}</span>
               </button>
             </div>
           </div>
@@ -1004,7 +1082,14 @@ const OStaffOperations: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                {filteredQueues.map((queue, idx) => {
+                {activeQueueList.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="px-4 py-10 text-center text-sm text-gray-400 dark:text-gray-600">
+                      {upcomingTab === 'waiting' ? 'ไม่มีคิวรอดำเนินการ' : 'ไม่มีคิวที่กำลังดำเนินการ'}
+                    </td>
+                  </tr>
+                )}
+                {activeQueueList.map((queue, idx) => {
                   const isSelected = selectedQueueDocNo === queue.no;
                   return (
                     <tr 
@@ -1032,7 +1117,11 @@ const OStaffOperations: React.FC = () => {
                       <td className="px-4 py-4 text-sm text-gray-600 dark:text-gray-300 flex items-center">
                         {getChannelIcon(queue.channel)} {queue.channel}
                       </td>
-                      <td className="px-4 py-4">{getStatusBadge(queue.status)}</td>
+                      <td className="px-4 py-4">
+                        {upcomingTab === 'inprogress'
+                          ? getStateLabelBadge(queue.state)
+                          : getStatusBadge(queue.status)}
+                      </td>
                       <td className={`px-4 py-4 font-mono font-medium ${
                         queue.isExpired ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400'
                       }`}>
@@ -1047,7 +1136,7 @@ const OStaffOperations: React.FC = () => {
         </div>
 
         {/* Right Panel: Current Action & Controls */}
-        <div className="lg:col-span-7 flex flex-col gap-6">
+        <div className="lg:col-span-5 flex flex-col gap-6">
           
           {/* Active Counter Card */}
           <div className="bg-white dark:bg-gray-800 rounded-2xl border border-blue-200 dark:border-blue-900 shadow-lg overflow-hidden relative">
@@ -1163,7 +1252,7 @@ const OStaffOperations: React.FC = () => {
           </div>
 
           {/* Session Metrics */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
+          {/* <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
              <h3 className="font-bold text-gray-800 dark:text-white mb-4 uppercase text-sm tracking-wider">Session Metrics</h3>
              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div>
@@ -1183,7 +1272,7 @@ const OStaffOperations: React.FC = () => {
                    <p className="text-3xl font-bold text-gray-900 dark:text-white">98%</p>
                 </div>
              </div>
-          </div>
+          </div> */}
 
         </div>
       </div>
