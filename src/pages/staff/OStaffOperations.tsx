@@ -357,7 +357,8 @@ const OStaffOperations: React.FC = () => {
 
   // Handle Call Next Queue
   const handleCallNext = async () => {
-    if (currentQueue) {
+    // Block only when no specific queue is selected AND there's already a current queue
+    if (currentQueue && !selectedQueueDocNo) {
       console.warn('⚠️ ไม่สามารถเรียกคิวถัดไปได้: มีคิวค้างอยู่ใน Now Calling');
       return;
     }
@@ -1090,11 +1091,33 @@ const OStaffOperations: React.FC = () => {
                   </tr>
                 )}
                 {activeQueueList.map((queue, idx) => {
-                  const isSelected = selectedQueueDocNo === queue.no;
+                  const isSelected = upcomingTab === 'inprogress'
+                    ? currentQueue?.docNo === queue.docNo
+                    : selectedQueueDocNo === queue.no;
                   return (
                     <tr 
                       key={idx} 
-                      onClick={() => setSelectedQueueDocNo(isSelected ? null : queue.no)}
+                      onClick={() => {
+                        if (upcomingTab === 'inprogress') {
+                          if (currentQueue?.docNo === queue.docNo) {
+                            // Deselect → clear Now Calling
+                            setCurrentQueue(null);
+                          } else {
+                            // Select → set Now Calling directly
+                            const groupName = workflow?.serviceGroups?.find(g => g.code === queue.group)?.name || queue.group;
+                            setCurrentQueue({
+                              docNo: queue.docNo,
+                              number: queue.ticketNo,
+                              channel: queue.channel,
+                              service: groupName,
+                              status: queue.state,
+                              group: queue.group,
+                            });
+                          }
+                        } else {
+                          setSelectedQueueDocNo(isSelected ? null : queue.no);
+                        }
+                      }}
                       className={`transition-all cursor-pointer ${
                         isSelected 
                           ? 'bg-blue-100 dark:bg-blue-900/30 ring-2 ring-blue-500 dark:ring-blue-400' 
@@ -1179,17 +1202,17 @@ const OStaffOperations: React.FC = () => {
           <div className="grid grid-cols-2 gap-4">
             <button 
               onClick={handleCallNext}
-              disabled={!!currentQueue}
-              title={currentQueue ? 'มีคิวค้างอยู่ใน Now Calling กรุณาสิ้นสุดก่อน' : undefined}
+              disabled={!!currentQueue && !(selectedQueueDocNo && upcomingTab === 'waiting')}
+              title={currentQueue && !selectedQueueDocNo ? 'มีคิวค้างอยู่ใน Now Calling กรุณาสิ้นสุดก่อน' : undefined}
               className={`h-32 rounded-2xl text-white shadow-lg flex flex-col items-center justify-center gap-2 transition-all active:scale-95 ${
-                currentQueue
+                (currentQueue && !(selectedQueueDocNo && upcomingTab === 'waiting'))
                   ? 'bg-gray-400 cursor-not-allowed opacity-60'
-                  : (selectedQueueDocNo
+                  : (selectedQueueDocNo && upcomingTab === 'waiting'
                       ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 shadow-purple-600/20'
                       : 'bg-blue-600 hover:bg-blue-700 shadow-blue-600/20')
               }`}
             >
-              {selectedQueueDocNo ? (
+              {selectedQueueDocNo && upcomingTab === 'waiting' ? (
                 <>
                   <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
