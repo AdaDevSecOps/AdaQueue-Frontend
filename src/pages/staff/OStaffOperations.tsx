@@ -710,13 +710,17 @@ const OStaffOperations: React.FC = () => {
 
   // Handle Cancel Queue: Cancel specific queue or oldest waiting queue
   const handleCancelQueue = async () => {
-    let docNoToCancel = selectedQueueDocNo;
-    
-    // If no queue is selected, find the oldest WAITING queue from the list
-    if (!docNoToCancel) {
-      const oldestWaiting = filteredQueues.find(q => q.state === 'WAITING' || q.state === '');
-      if (oldestWaiting) {
-        docNoToCancel = oldestWaiting.docNo;
+    let docNoToCancel: string | null = null;
+
+    // In Progress tab → cancel the currentQueue (Now Calling)
+    if (upcomingTab === 'inprogress' && currentQueue?.docNo) {
+      docNoToCancel = currentQueue.docNo;
+    } else {
+      // Waiting tab: use selected row, or fallback to oldest WAITING
+      docNoToCancel = selectedQueueDocNo;
+      if (!docNoToCancel) {
+        const oldestWaiting = filteredQueues.find(q => q.state === 'WAITING' || q.state === '');
+        if (oldestWaiting) docNoToCancel = oldestWaiting.docNo;
       }
     }
 
@@ -748,6 +752,11 @@ const OStaffOperations: React.FC = () => {
       });
 
       if (res.ok) {
+        console.log(upcomingTab)
+        if (currentQueueStorageKey && upcomingTab === 'inprogress') {
+          try { localStorage.removeItem(currentQueueStorageKey); } catch {}
+          setCurrentQueue(null);
+        }
         console.log('✅ SUCCESS: Ticket cancelled');
         setSelectedQueueDocNo(null);
         try { await fetchQueues(); } catch {}
@@ -1305,19 +1314,38 @@ const OStaffOperations: React.FC = () => {
               <span className="font-bold text-sm">SKIP TICKET</span>
             </button>
             
-            <button 
-              onClick={handleCancelQueue}
-              disabled={!selectedQueueDocNo && waitingCount === 0}
-              title={(!selectedQueueDocNo && waitingCount === 0) ? 'ไม่มีคิวให้ยกเลิก' : undefined}
-              className={`h-24 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-red-600 dark:text-red-500 flex flex-col items-center justify-center gap-1 transition ${
-                (!selectedQueueDocNo && waitingCount === 0)
-                  ? 'opacity-40 cursor-not-allowed'
-                  : 'hover:bg-red-50 dark:hover:bg-red-900/10'
-              }`}
-            >
-              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-              <span className="font-bold text-sm">CANCEL QUEUE</span>
-            </button>
+            {(() => {
+              const inProgressCancel = upcomingTab === 'inprogress' && !!currentQueue;
+              const isDisabled = inProgressCancel ? false : (!selectedQueueDocNo && waitingCount === 0);
+              const isSelected = inProgressCancel ? true : !!selectedQueueDocNo;
+              const targetTicket = inProgressCancel
+                ? currentQueue!.number
+                : (activeQueueList.find(q => q.no === selectedQueueDocNo)?.ticketNo || selectedQueueDocNo);
+              return (
+                <button
+                  onClick={handleCancelQueue}
+                  disabled={isDisabled}
+                  title={isDisabled ? 'ไม่มีคิวให้ยกเลิก' : (isSelected ? `ยกเลิกคิว ${targetTicket}` : 'ยกเลิกคิวที่รอนานที่สุด')}
+                  className={`h-24 rounded-xl flex flex-col items-center justify-center gap-1 transition ${
+                    isDisabled
+                      ? 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-red-600 dark:text-red-500 opacity-40 cursor-not-allowed'
+                      : isSelected
+                        ? 'bg-red-50 dark:bg-red-900/20 border-2 border-red-500 dark:border-red-500 text-red-600 dark:text-red-400 ring-2 ring-red-400/30 hover:bg-red-100 dark:hover:bg-red-900/30'
+                        : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-red-600 dark:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10'
+                  }`}
+                >
+                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                  {isSelected ? (
+                    <>
+                      <span className="font-bold text-sm">CANCEL</span>
+                      <span className="text-xs font-bold opacity-90">{targetTicket}</span>
+                    </>
+                  ) : (
+                    <span className="font-bold text-sm">CANCEL QUEUE</span>
+                  )}
+                </button>
+              );
+            })()}
           </div>
 
           {/* Session Metrics */}
