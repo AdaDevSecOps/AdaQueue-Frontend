@@ -1725,15 +1725,24 @@ const OWorkflowDesigner: React.FC = () => {
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Business Type</label>
-                        <select 
-                            value={newProfileData.businessType}
-                            onChange={(e) => setNewProfileData({...newProfileData, businessType: e.target.value})}
-                            className="w-full p-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                        <label
+                            className="flex items-center gap-3 cursor-pointer p-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors select-none"
                         >
-                            <option value="1">ร้านอาหาร</option>
-                            <option value="2">ธนาคาร</option>
-                        </select>
+                            <div className="relative flex-shrink-0">
+                                <input
+                                    type="checkbox"
+                                    className="sr-only"
+                                    checked={newProfileData.businessType === '1'}
+                                    onChange={(e) => setNewProfileData({...newProfileData, businessType: e.target.checked ? '1' : '2'})}
+                                />
+                                <div className={`w-10 h-5 rounded-full transition-colors ${newProfileData.businessType === '1' ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'}`} />
+                                <div className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${newProfileData.businessType === '1' ? 'translate-x-5' : 'translate-x-0'}`} />
+                            </div>
+                            <div>
+                                <span className="text-sm font-bold text-gray-700 dark:text-gray-300">แสดงคิวตาม work flow</span>
+                                <p className="text-xs text-gray-400 mt-0.5">{newProfileData.businessType === '1' ? 'เปิดใช้งาน — แสดงผลตาม workflow steps' : 'ปิด — แสดงผลแบบ 3 คอลัมน์คงที่'}</p>
+                            </div>
+                        </label>
                     </div>
                 </div>
 
