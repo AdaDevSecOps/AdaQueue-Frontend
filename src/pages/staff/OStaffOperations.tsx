@@ -327,11 +327,51 @@ const OStaffOperations: React.FC = () => {
     }
   }, [selectedProfile?.code, workflow?.serviceGroups]);
 
+  // localStorage key unique to this staff session (profile + service point)
+  const currentQueueStorageKey = selectedProfile?.code && selectedPointCode
+    ? `adaqueue_current_queue_${selectedProfile.code}_${selectedPointCode}`
+    : null;
+
+  // Save / clear current queue docNo to localStorage whenever it changes
+  useEffect(() => {
+    if (!currentQueueStorageKey) return;
+    if (currentQueue?.docNo) {
+      try { localStorage.setItem(currentQueueStorageKey, currentQueue.docNo); } catch {}
+    } 
+    // else {
+    //   try { localStorage.removeItem(currentQueueStorageKey); } catch {}
+    // }
+  }, [currentQueue, currentQueueStorageKey]);
+
   useEffect(() => {
     if (startupStep === 'ready') {
       fetchQueues();
     }
   }, [startupStep, fetchQueues]);
+
+  // Restore currentQueue from queueList after page re-mount
+  useEffect(() => {
+    if (!currentQueueStorageKey || !queueList.length || currentQueue) return;
+    try {
+      const savedDocNo = localStorage.getItem(currentQueueStorageKey);
+      if (!savedDocNo) return;
+      const match = queueList.find((q: any) => q.docNo === savedDocNo);
+      if (match) {
+        const groupName = workflow?.serviceGroups?.find(g => g.code === match.group)?.name || match.group;
+        setCurrentQueue({
+          docNo: match.docNo,
+          number: match.ticketNo,
+          channel: match.channel,
+          service: groupName,
+          status: match.state,
+          group: match.group,
+        });
+      } else {
+        // Queue no longer exists (finished/cancelled) — clear stale entry
+        localStorage.removeItem(currentQueueStorageKey);
+      }
+    } catch {}
+  }, [queueList, currentQueueStorageKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (startupStep !== 'ready' || !selectedProfile?.code) return;
@@ -584,6 +624,9 @@ const OStaffOperations: React.FC = () => {
         headers: { 'content-type': res.headers.get('content-type') }
       });
       if (res.ok) {
+        if (targetStatus === 'FINISH' && currentQueueStorageKey) {
+          try { localStorage.removeItem(currentQueueStorageKey); } catch {}
+        }
         const data = await res.json().catch(() => ({}));
         
         const isFinal = (code: string | null) => {
@@ -649,6 +692,9 @@ const OStaffOperations: React.FC = () => {
       });
 
       if (res.ok) {
+        if (currentQueueStorageKey) {
+          try { localStorage.removeItem(currentQueueStorageKey); } catch {}
+        }
         console.log('✅ SUCCESS: Ticket skipped');
         setCurrentQueue(null);
         try { await fetchQueues(); } catch {}
