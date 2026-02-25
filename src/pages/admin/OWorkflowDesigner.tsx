@@ -360,18 +360,23 @@ const OWorkflowDesigner: React.FC = () => {
         
         // Prepare config
         let configToSave: any;
-        if (isEdit && editingProfile && editingProfile.config) {
-             // Merge existing config with new description
-             configToSave = {
-                 ...editingProfile.config,
-                 profileId: profileCode,
-                 profileName: newProfileData.name,
-                 agnCode: newProfileData.agnCode,
-                 businessType: newProfileData.businessType,
-                 description: newProfileData.description
-             };
+        if (isEdit) {
+            // Use the current loaded workflow as the base config (preserves serviceGroups, servicePoints, etc.)
+            // workflow state is the authoritative source; editingProfile.config may be undefined if
+            // getAllProfiles API doesn't serialize TypeORM getter properties.
+            const existingConfig = (selectedProfileId === profileCode && workflow)
+                ? workflow  // Use the loaded workflow data (full config)
+                : (editingProfile?.config || {}); // Fallback to editingProfile.config
+            configToSave = {
+                ...existingConfig,
+                profileId: profileCode,
+                profileName: newProfileData.name,
+                agnCode: newProfileData.agnCode,
+                businessType: newProfileData.businessType,
+                description: newProfileData.description
+            };
         } else {
-             // New config or fallback
+             // New config
              configToSave = {
                  profileId: profileCode,
                  profileName: newProfileData.name,
@@ -438,6 +443,7 @@ const OWorkflowDesigner: React.FC = () => {
                     code: profileCode,
                     name: newProfileData.name,
                     agnCode: newProfileData.agnCode,
+                    businessType: newProfileData.businessType,
                     description: newProfileData.description,
                     config: configToSave
                 };
