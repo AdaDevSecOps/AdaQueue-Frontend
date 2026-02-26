@@ -1,15 +1,15 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect } from "react";
+import axios from "axios";
 
 // Mock Token Types
 interface User {
   username: string;
-  role: 'ADMIN' | 'STAFF' | 'KIOSK';
+  role: "ADMIN" | "STAFF" | "KIOSK";
   name: string;
 }
 
 interface AuthContextType {
   user: User | null;
-  token: string | null;
   login: (pin: string) => Promise<User | null>;
   logout: () => void;
   isLoading: boolean;
@@ -17,65 +17,92 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+// Configure axios for cookies
+axios.defaults.withCredentials = true;
+axios.defaults.baseURL = ""; // Set your API base URL if needed
+
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check local storage for existing session
-    const storedToken = localStorage.getItem('adaqueue_token');
-    const storedUser = localStorage.getItem('adaqueue_user');
-    
-    if (storedToken && storedUser) {
-      setToken(storedToken);
+    // Check local storage only for USER info (not token)
+    // The token is now in a secure HttpOnly cookie
+    const storedUser = localStorage.getItem("adaqueue_user");
+    if (storedUser) {
       setUser(JSON.parse(storedUser));
     }
+
+    // Add Axios interceptor for refresh token
+    const interceptor = axios.interceptors.response.use(
+      (response) => response,
+      async (error) => {
+        const originalRequest = error.config;
+        if (error.response?.status === 401 && !originalRequest._retry) {
+          originalRequest._retry = true;
+          const refreshStored = localStorage.getItem("adaqueue_refresh");
+          if (refreshStored) {
+            try {
+              const res = await axios.post("/api/auth/refresh", {
+                refreshToken: refreshStored,
+              });
+              if (res.data.rtCode === "1") {
+                return axios(originalRequest);
+              }
+            } catch (err) {
+              logout();
+            }
+          }
+        }
+        return Promise.reject(error);
+      },
+    );
+
     setIsLoading(false);
+    return () => axios.interceptors.response.eject(interceptor);
   }, []);
 
   const login = async (pin: string): Promise<User | null> => {
-    // Simulate API Call
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        if (pin === '1234') {
-          const mockUser: User = { username: 'admin', role: 'ADMIN', name: 'System Admin' };
-          const mockToken = 'mock-jwt-token-admin';
-          saveSession(mockUser, mockToken);
-          resolve(mockUser);
-        } else if (pin === '0000') {
-            const mockUser: User = { username: 'staff', role: 'STAFF', name: 'Service Staff' };
-            const mockToken = 'mock-jwt-token-staff';
-            saveSession(mockUser, mockToken);
-            resolve(mockUser);
-        } else if (pin === '9999') {
-             const mockUser: User = { username: 'kiosk', role: 'KIOSK', name: 'Kiosk Terminal' };
-             const mockToken = 'mock-jwt-token-kiosk';
-             saveSession(mockUser, mockToken);
-             resolve(mockUser);
-        } else {
-          resolve(null);
-        }
-      }, 800);
-    });
+    try {
+      const response = await axios.post("/api/auth/login", { pin });
+      const data = response.data;
+
+      if (data.rtCode === "1" && data.roResult) {
+        const { user: apiUser, refreshToken } = data.roResult;
+
+        const loggedInUser: User = {
+          username: apiUser.username,
+          role: apiUser.role as "ADMIN" | "STAFF" | "KIOSK",
+          name: apiUser.name,
+        };
+
+        localStorage.setItem("adaqueue_user", JSON.stringify(loggedInUser));
+        localStorage.setItem("adaqueue_refresh", refreshToken);
+        setUser(loggedInUser);
+        return loggedInUser;
+      }
+      return null;
+    } catch (error) {
+      console.error("Login error:", error);
+      return null;
+    }
   };
 
-  const saveSession = (user: User, token: string) => {
-    localStorage.setItem('adaqueue_token', token);
-    localStorage.setItem('adaqueue_user', JSON.stringify(user));
-    setUser(user);
-    setToken(token);
-  };
-
-  const logout = () => {
-    localStorage.removeItem('adaqueue_token');
-    localStorage.removeItem('adaqueue_user');
+  const logout = async () => {
+    try {
+      await axios.post("/api/auth/logout");
+    } catch (e) {
+      console.error(e);
+    }
+    localStorage.removeItem("adaqueue_user");
+    localStorage.removeItem("adaqueue_refresh");
     setUser(null);
-    setToken(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, login, logout, isLoading }}>
       {children}
     </AuthContext.Provider>
   );
@@ -83,6 +110,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) throw new Error('useAuth must be used within an AuthProvider');
+  if (!context) throw new Error("useAuth must be used within an AuthProvider");
   return context;
 };
