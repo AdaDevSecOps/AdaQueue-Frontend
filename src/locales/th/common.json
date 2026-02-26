@@ -1,0 +1,71 @@
+{
+  "brand": "AdaQueue",
+  "menu": {
+    "dashboard": "แดชบอร์ด",
+    "performanceReport": "รายงานประสิทธิภาพ",
+    "workflowDesigner": "ออกแบบเวิร์กโฟลว์",
+    "staffOperations": "งานเจ้าหน้าที่",
+    "bulkManagement": "จัดการแบบกลุ่ม",
+    "displayBoard": "จอแสดงผล",
+    "kioskMode": "โหมดคีออส"
+  },
+  "theme": {
+    "dark": "โหมดมืด",
+    "light": "โหมดสว่าง",
+    "switchToDark": "สลับเป็นโหมดมืด",
+    "switchToLight": "สลับเป็นโหมดสว่าง"
+  },
+  "common": {
+    "language": "ภาษา",
+    "thai": "ไทย",
+    "english": "อังกฤษ",
+    "save": "บันทึก",
+    "cancel": "ยกเลิก",
+    "confirm": "ยืนยัน",
+    "close": "ปิด",
+    "delete": "ลบ",
+    "edit": "แก้ไข",
+    "search": "ค้นหา",
+    "loading": "กำลังโหลด...",
+    "error": "เกิดข้อผิดพลาด",
+    "success": "สำเร็จ",
+    "noData": "ไม่มีข้อมูล",
+    "status": "สถานะ",
+    "date": "วันที่",
+    "time": "เวลา",
+    "name": "ชื่อ",
+    "all": "ทั้งหมด"
+  },
+  "board": {
+    "selectEnvironment": "เลือกสภาพแวดล้อม",
+    "selectEnvironmentDesc": "เลือก Profile สำหรับจอแสดงผลนี้",
+    "selectDisplayBoard": "เลือกจอแสดงผล",
+    "selectDisplayBoardDesc": "จะโหลด Screen Configuration ใด?",
+    "backToProfiles": "← กลับไปเลือก Profile",
+    "loadingConfig": "กำลังโหลดการตั้งค่า...",
+    "noBoardsFound": "ไม่พบจอแสดงผล",
+    "noBoardsDesc": "Profile นี้ยังไม่มีจอแสดงผลที่ตั้งค่าไว้",
+    "chooseDifferentProfile": "เลือก Profile อื่น",
+    "resetConfig": "รีเซ็ตการตั้งค่า",
+    "queues": "คิว",
+    "noDescription": "ไม่มีคำอธิบาย",
+    "systemError": "ข้อผิดพลาดของระบบ",
+    "retry": "ลองอีกครั้ง",
+    "loading": "กำลังโหลด..."
+  },
+  "queueBoard": {
+    "waitingQueue": "คิวรอ",
+    "pleaseWait": "กรุณารอเรียกหมายเลข",
+    "waitingForData": "รอข้อมูล...",
+    "noQueuesWaiting": "ไม่มีคิวรอ",
+    "total": "รวม:",
+    "inProgress": "คิวที่กำลังดำเนินการ",
+    "serviceCounter": "ช่องบริการ"
+  },
+  "queueControl": {
+    "ticketId": "รหัสบัตร",
+    "noActions": "ไม่มีการดำเนินการที่ใช้ได้ในสถานะนี้",
+    "industry": "อุตสาหกรรม",
+    "lastUpdated": "อัพเดทล่าสุด"
+  }
+}

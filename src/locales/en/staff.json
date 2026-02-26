@@ -1,0 +1,81 @@
+{
+  "login": {
+    "title": "Staff Login",
+    "subtitle": "Select working environment",
+    "noProfiles": "No profiles found. Please contact administrator.",
+    "selectStation": "Select Station",
+    "whereToday": "Where are you working today?",
+    "switchProfile": "Switch Profile"
+  },
+  "header": {
+    "operations": "Operations",
+    "breadcrumb": "Queue Dashboard (O-01)",
+    "waiting": "Waiting",
+    "nearSla": "Near SLA",
+    "allServices": "All Services"
+  },
+  "queue": {
+    "upcoming": "Upcoming Queue",
+    "waitingTab": "Waiting",
+    "inProgressTab": "In Progress",
+    "queueNo": "Queue No",
+    "channel": "Channel",
+    "status": "Status",
+    "slaTimer": "SLA Timer",
+    "noWaiting": "No queues waiting",
+    "noInProgress": "No queues in progress",
+    "expired": "EXPIRED"
+  },
+  "calling": {
+    "title": "Now Calling",
+    "activeCounter": "Active Counter",
+    "ticketNumber": "Customer Ticket Number",
+    "noActive": "No Active Queue",
+    "pressCallNext": "Press \"CALL NEXT\" to call the next queue",
+    "channelLabel": "Channel:",
+    "serviceLabel": "Service:"
+  },
+  "actions": {
+    "callNext": "CALL NEXT",
+    "callSelected": "CALL SELECTED",
+    "skipQueue": "Skip Queue",
+    "skipTicket": "SKIP TICKET",
+    "cancel": "CANCEL",
+    "cancelQueue": "CANCEL QUEUE",
+    "finishProcess": "FINISH PROCESS"
+  },
+  "footer": {
+    "systemSync": "System Sync: Healthy",
+    "currentShift": "Current Shift:",
+    "help": "Help & Support",
+    "shortcuts": "Shortcuts"
+  },
+  "error": {
+    "title": "System Error",
+    "retry": "Retry"
+  },
+  "bulk": {
+    "title": "Bulk Queue Actions",
+    "subtitle": "Manage multiple customer tickets based on Workflow Configuration.",
+    "loading": "Loading...",
+    "selectProfile": "Select Profile",
+    "refresh": "Refresh",
+    "allGroups": "All Service Groups",
+    "allPoints": "All Service Points",
+    "searchTicket": "Search Ticket...",
+    "items": "ITEMS",
+    "bulkActions": "Perform bulk actions on selection.",
+    "transfer": "Transfer",
+    "skip": "Skip",
+    "ticketId": "Ticket ID",
+    "customer": "Customer",
+    "serviceGroup": "Service Group",
+    "servicePoint": "Service Point",
+    "waitTime": "Wait Time",
+    "showing": "Showing {{count}} results",
+    "noQueues": "No queues found matching filters.",
+    "selectProfileFirst": "Please select a profile to load data.",
+    "historyLog": "History Log",
+    "viewFullReport": "View Full Report"
+  }
+}

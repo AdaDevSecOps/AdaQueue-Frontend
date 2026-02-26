@@ -1,0 +1,81 @@
+{
+  "login": {
+    "title": "เข้าสู่ระบบพนักงาน",
+    "subtitle": "เลือกสภาพแวดล้อมการทำงาน",
+    "noProfiles": "ไม่พบ Profile กรุณาติดต่อผู้ดูแลระบบ",
+    "selectStation": "เลือกจุดบริการ",
+    "whereToday": "คุณทำงานที่ไหนวันนี้?",
+    "switchProfile": "เปลี่ยน Profile"
+  },
+  "header": {
+    "operations": "งานประจำวัน",
+    "breadcrumb": "แดชบอร์ดคิว (O-01)",
+    "waiting": "รอ",
+    "nearSla": "ใกล้ SLA",
+    "allServices": "บริการทั้งหมด"
+  },
+  "queue": {
+    "upcoming": "คิวที่รอ",
+    "waitingTab": "รอ",
+    "inProgressTab": "กำลังดำเนินการ",
+    "queueNo": "หมายเลขคิว",
+    "channel": "ช่องทาง",
+    "status": "สถานะ",
+    "slaTimer": "ตัวจับเวลา",
+    "noWaiting": "ไม่มีคิวรอดำเนินการ",
+    "noInProgress": "ไม่มีคิวที่กำลังดำเนินการ",
+    "expired": "หมดเวลา"
+  },
+  "calling": {
+    "title": "กำลังเรียก",
+    "activeCounter": "เคาน์เตอร์ที่ใช้งาน",
+    "ticketNumber": "หมายเลขบัตร",
+    "noActive": "ไม่มีคิวที่ใช้งาน",
+    "pressCallNext": "กด \"เรียกถัดไป\" เพื่อเรียกคิวถัดไป",
+    "channelLabel": "ช่องทาง:",
+    "serviceLabel": "บริการ:"
+  },
+  "actions": {
+    "callNext": "เรียกถัดไป",
+    "callSelected": "เรียกที่เลือก",
+    "skipQueue": "ข้ามคิว",
+    "skipTicket": "ข้ามบัตร",
+    "cancel": "ยกเลิก",
+    "cancelQueue": "ยกเลิกคิว",
+    "finishProcess": "จบกระบวนการ"
+  },
+  "footer": {
+    "systemSync": "ระบบซิงค์: ปกติ",
+    "currentShift": "กะปัจจุบัน:",
+    "help": "ช่วยเหลือ",
+    "shortcuts": "ทางลัด"
+  },
+  "error": {
+    "title": "ข้อผิดพลาดของระบบ",
+    "retry": "ลองอีกครั้ง"
+  },
+  "bulk": {
+    "title": "จัดการคิวแบบกลุ่ม",
+    "subtitle": "จัดการบัตรลูกค้าหลายใบตาม Workflow",
+    "loading": "กำลังโหลด...",
+    "selectProfile": "เลือก Profile",
+    "refresh": "รีเฟรช",
+    "allGroups": "บริการทั้งหมด",
+    "allPoints": "จุดบริการทั้งหมด",
+    "searchTicket": "ค้นหาบัตร...",
+    "items": "รายการ",
+    "bulkActions": "ดำเนินการแบบกลุ่มกับที่เลือก",
+    "transfer": "โอน",
+    "skip": "ข้าม",
+    "ticketId": "รหัสบัตร",
+    "customer": "ลูกค้า",
+    "serviceGroup": "กลุ่มบริการ",
+    "servicePoint": "จุดบริการ",
+    "waitTime": "เวลารอ",
+    "showing": "แสดง {{count}} รายการ",
+    "noQueues": "ไม่พบคิวตามเงื่อนไข",
+    "selectProfileFirst": "กรุณาเลือก Profile เพื่อโหลดข้อมูล",
+    "historyLog": "ประวัติ",
+    "viewFullReport": "ดูรายงานเต็ม"
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "status": {
+    "waiting": "Waiting in Queue",
+    "near": "Almost Your Turn",
+    "called": "Please Go to Counter 3",
+    "unknown": "Status Unknown"
+  },
+  "ticket": {
+    "number": "Your Ticket Number",
+    "queuesAhead": "Queues Ahead",
+    "estWait": "Est. Wait Time",
+    "min": "min",
+    "issued": "Issued",
+    "now": "Now"
+  },
+  "actions": {
+    "notify": "Notify Me",
+    "leaveQueue": "Leave Queue",
+    "viewDetails": "View Service Details",
+    "hideDetails": "Hide Details"
+  },
+  "details": {
+    "serviceType": "Service Type",
+    "date": "Date",
+    "location": "Location"
+  },
+  "footer": "Powered by AdaQueue"
+}

@@ -1,0 +1,174 @@
+{
+  "dashboard": {
+    "title": "แดชบอร์ดผู้ดูแลระบบ",
+    "subtitle": "ตรวจสอบคิวแบบเรียลไทม์และวิเคราะห์ประสิทธิภาพ",
+    "refresh": "รีเฟรช",
+    "failedLoad": "โหลดข้อมูลล้มเหลว",
+    "stats": {
+      "totalTickets": "บัตรทั้งหมด",
+      "avgWaitTime": "เวลารอเฉลี่ย",
+      "activeCounters": "ช่องที่เปิดให้บริการ",
+      "servedToday": "ให้บริการวันนี้"
+    },
+    "chart": {
+      "trafficOverview": "ภาพรวมการใช้งาน",
+      "today": "วันนี้",
+      "thisWeek": "สัปดาห์นี้",
+      "thisMonth": "เดือนนี้"
+    },
+    "serviceHealth": "สถานะบริการ",
+    "operational": "ปกติ",
+    "systemAlerts": "การแจ้งเตือนระบบ",
+    "alerts": {
+      "highWaitTitle": "แจ้งเตือนเวลารอสูง",
+      "highWaitDesc": "เวลารอเฉลี่ยใน Zone A เกิน 20 นาที",
+      "paperLowTitle": "กระดาษใกล้หมด",
+      "paperLowDesc": "คีออส #03 รายงานว่ากระดาษเหลือ 15%"
+    }
+  },
+  "report": {
+    "title": "รายงานผลการปฏิบัติงานและ SLA",
+    "lastRefreshed": "รีเฟรชล่าสุด: 2 นาทีก่อน",
+    "share": "แชร์",
+    "exportReport": "ส่งออกรายงาน",
+    "filters": {
+      "branch": "สาขา: Downtown Central",
+      "zone": "โซน: Service Hall A",
+      "staffRole": "บทบาท: พนักงานทั้งหมด",
+      "date": "วันที่: 30 วันที่ผ่านมา"
+    },
+    "summary": {
+      "overallSla": "SLA Compliance รวม",
+      "totalTickets": "บัตรที่ดำเนินการทั้งหมด",
+      "avgWaitTime": "เวลารอเฉลี่ย",
+      "avgCsat": "คะแนน CSAT เฉลี่ย"
+    },
+    "heatmap": {
+      "title": "ความหนาแน่นของคิว",
+      "lowTraffic": "น้อย",
+      "peakLoad": "สูงสุด",
+      "tickets": "บัตร"
+    },
+    "table": {
+      "title": "ตัวชี้วัดผลการปฏิบัติงาน",
+      "staffMember": "พนักงาน / รหัส",
+      "roleCounter": "บทบาท / ช่องบริการ",
+      "ticketsHandled": "บัตรที่ดำเนินการ",
+      "aht": "เวลาดำเนินการเฉลี่ย (AHT)",
+      "slaCompliance": "SLA Compliance",
+      "slaBreaches": "SLA ละเมิด",
+      "csat": "CSAT"
+    },
+    "pagination": {
+      "showing": "แสดง {{from}} ถึง {{to}} จาก {{total}} พนักงาน",
+      "previous": "ก่อนหน้า",
+      "next": "ถัดไป"
+    }
+  },
+  "workflow": {
+    "title": "ออกแบบเวิร์กโฟลว์",
+    "online": "ออนไลน์",
+    "switchProfile": "สลับ Profile",
+    "createNewProfile": "สร้าง Profile ใหม่",
+    "overview": {
+      "queueTypes": "ประเภทคิว",
+      "servicePoints": "จุดบริการ",
+      "kiosks": "คีออส",
+      "displayBoards": "จอแสดงผล",
+      "queueConfig": "การตั้งค่าคิว",
+      "createNewQueue": "สร้างคิวใหม่",
+      "states": "ขั้นตอน",
+      "configure": "ตั้งค่า"
+    },
+    "saving": "กำลังบันทึก...",
+    "saveChanges": "บันทึกการเปลี่ยนแปลง",
+    "savingSuccess": "บันทึก Workflow สำเร็จแล้ว!",
+    "kiosk": {
+      "title": "การตั้งค่า Kiosk",
+      "subtitle": "จัดการ Kiosk และคิวที่แสดงผล",
+      "addKiosk": "เพิ่ม Kiosk",
+      "nameLabel": "ชื่อ Kiosk (ภายใน)",
+      "displayTitle": "ชื่อแสดงผล (สาธารณะ)",
+      "description": "คำอธิบาย",
+      "deviceCode": "รหัสอุปกรณ์",
+      "removeKiosk": "ลบ Kiosk",
+      "visibleQueues": "ประเภทคิวที่แสดง",
+      "noQueueTypes": "ยังไม่มีประเภทคิวใน Profile นี้",
+      "noKiosks": "ยังไม่มี Kiosk ที่ตั้งค่า",
+      "noKiosksDesc": "เพิ่ม Kiosk เพื่อตั้งค่าคิวที่จะแสดงผล",
+      "createFirst": "สร้าง Kiosk แรก"
+    },
+    "board": {
+      "title": "การตั้งค่าจอแสดงผล",
+      "subtitle": "จัดการจอ TV และมอนิเตอร์สำหรับแสดงการเรียกคิว",
+      "addBoard": "เพิ่มจอ",
+      "nameLabel": "ชื่อจอ (ภายใน)",
+      "displayTitle": "ชื่อแสดงผล (สาธารณะ)",
+      "description": "คำอธิบาย",
+      "deviceCode": "รหัสอุปกรณ์",
+      "removeBoard": "ลบจอแสดงผล",
+      "displayedQueues": "ประเภทคิวที่แสดง",
+      "noQueueTypes": "ยังไม่มีประเภทคิวใน Profile นี้",
+      "noBoards": "ยังไม่มีจอแสดงผลที่ตั้งค่า",
+      "noBoardsDesc": "เพิ่มจอแสดงผลเพื่อแสดงสถานะคิวให้ลูกค้า",
+      "createFirst": "สร้างจอแรก"
+    },
+    "servicePoint": {
+      "title": "การตั้งค่าจุดบริการ",
+      "subtitle": "จัดการช่องบริการ ห้อง และสถานีที่พนักงานปฏิบัติงาน",
+      "addPoint": "เพิ่มจุดบริการ",
+      "pointName": "ชื่อจุดบริการ",
+      "description": "คำอธิบาย",
+      "pointCode": "รหัสจุดบริการ",
+      "removePoint": "ลบจุดบริการ",
+      "supportedQueues": "คิวที่รองรับ",
+      "focusStates": "สถานะที่ดำเนินการ"
+    },
+    "queueDetail": {
+      "workflowDesign": "ออกแบบ Workflow",
+      "generalSettings": "การตั้งค่าทั่วไป",
+      "flowSteps": "ขั้นตอน",
+      "addStep": "เพิ่มขั้นตอน",
+      "stepName": "ชื่อขั้นตอน",
+      "stepType": "ประเภทขั้นตอน",
+      "stepTypeDesc": "กำหนดวิธีที่ระบบจัดการกับขั้นตอนนี้",
+      "estDuration": "เวลาประมาณการ (นาที)",
+      "transitions": "การเปลี่ยนสถานะ (ขั้นตอนถัดไป)",
+      "addTransition": "เพิ่มการเปลี่ยนสถานะ",
+      "noTransitions": "ยังไม่มีการเปลี่ยนสถานะ สถานะนี้เป็น dead-end",
+      "actionLabel": "ป้ายปุ่มดำเนินการ",
+      "targetState": "สถานะเป้าหมาย",
+      "selectState": "เลือกสถานะจากรายการเพื่อแก้ไข",
+      "queueName": "ชื่อคิว",
+      "queueCode": "รหัสคิว (ID)",
+      "priority": "ลำดับความสำคัญ",
+      "stateType": {
+        "initial": "INITIAL (จุดเริ่มต้น)",
+        "normal": "NORMAL (ขั้นตอน)",
+        "final": "FINAL (จุดสิ้นสุด)"
+      }
+    },
+    "modal": {
+      "createTitle": "สร้าง Profile ใหม่",
+      "editTitle": "แก้ไข Profile",
+      "profileName": "ชื่อ Profile",
+      "agencyCode": "รหัสหน่วยงาน (ถ้ามี)",
+      "agencyCodeHint": "สำหรับระบบ multi-tenant หรือกรอง branch",
+      "descriptionLabel": "คำอธิบาย (ถ้ามี)",
+      "displayByWorkflow": "แสดงคิวตาม work flow",
+      "workflowOn": "เปิดใช้งาน — แสดงผลตาม workflow steps",
+      "workflowOff": "ปิด — แสดงผลแบบ 3 คอลัมน์คงที่",
+      "cancel": "ยกเลิก",
+      "createBtn": "สร้าง Profile",
+      "saveBtn": "บันทึกการเปลี่ยนแปลง"
+    },
+    "confirm": {
+      "deleteProfile": "คุณแน่ใจหรือไม่ที่จะลบ Profile \"{{name}}\"? ไม่สามารถยกเลิกได้",
+      "deleteKiosk": "คุณแน่ใจหรือไม่ที่จะลบ Kiosk นี้?",
+      "deletePoint": "คุณแน่ใจหรือไม่ที่จะลบจุดบริการนี้?",
+      "deleteBoard": "คุณแน่ใจหรือไม่ที่จะลบจอแสดงผลนี้?",
+      "deleteState": "ลบสถานะนี้?",
+      "onlyState": "ไม่สามารถลบสถานะเดียวได้"
+    }
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "setup": {
+    "selectEnvironment": "Select Environment",
+    "selectEnvironmentDesc": "Choose the profile for this Kiosk",
+    "selectKiosk": "Select Kiosk Point",
+    "selectKioskDesc": "Identify this kiosk unit",
+    "backToEnvironment": "← Back to Environment Selection"
+  },
+  "welcome": {
+    "badge": "Queue Management System",
+    "greeting": "Welcome! Please select a service to begin.",
+    "noServices": "No services currently available.",
+    "checkConfig": "Please check kiosk configuration.",
+    "langTh": "🇹🇭 ภาษาไทย",
+    "langEn": "🇬🇧 English",
+    "poweredBy": "Powered by AdaSoft"
+  },
+  "error": {
+    "title": "System Error",
+    "retry": "Retry",
+    "configError": "Configuration Error",
+    "contactAdmin": "Please contact admin",
+    "loadError": "Unable to load queue data",
+    "noQueue": "Queue not found",
+    "backendFailed": "Backend connection failed. Please restart the frontend server."
+  },
+  "issueTicket": {
+    "title": "Just a few more details...",
+    "phoneLabel": "📱 Phone Number",
+    "guests": "Guests",
+    "clear": "Clear",
+    "confirmTicket": "✅ Confirm Ticket",
+    "processing": "Processing...",
+    "back": "Back",
+    "ticketInfo": "Tickets are dispensed from the slot below the screen. Please take your ticket and wait for your number to be called."
+  },
+  "ticketIssued": {
+    "yourTicket": "Your Ticket",
+    "loading": "Loading queue data...",
+    "backToServices": "← Back to Services"
+  }
+}

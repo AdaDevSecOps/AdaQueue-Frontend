@@ -1,0 +1,71 @@
+{
+  "brand": "AdaQueue",
+  "menu": {
+    "dashboard": "Dashboard",
+    "performanceReport": "Performance Report",
+    "workflowDesigner": "Workflow Designer",
+    "staffOperations": "Staff Operations",
+    "bulkManagement": "Bulk Management",
+    "displayBoard": "Display Board",
+    "kioskMode": "Kiosk Mode"
+  },
+  "theme": {
+    "dark": "Dark Mode",
+    "light": "Light Mode",
+    "switchToDark": "Switch to Dark Mode",
+    "switchToLight": "Switch to Light Mode"
+  },
+  "common": {
+    "language": "Language",
+    "thai": "Thai",
+    "english": "English",
+    "save": "Save",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "close": "Close",
+    "delete": "Delete",
+    "edit": "Edit",
+    "search": "Search",
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "success": "Success",
+    "noData": "No data",
+    "status": "Status",
+    "date": "Date",
+    "time": "Time",
+    "name": "Name",
+    "all": "All"
+  },
+  "board": {
+    "selectEnvironment": "Select Environment",
+    "selectEnvironmentDesc": "Choose the profile this display board belongs to.",
+    "selectDisplayBoard": "Select Display Board",
+    "selectDisplayBoardDesc": "Which screen configuration should be loaded?",
+    "backToProfiles": "← Back to Profiles",
+    "loadingConfig": "Loading configuration...",
+    "noBoardsFound": "No Boards Found",
+    "noBoardsDesc": "This profile doesn't have any display boards configured yet.",
+    "chooseDifferentProfile": "Choose Different Profile",
+    "resetConfig": "Reset Config",
+    "queues": "Queues",
+    "noDescription": "No description",
+    "systemError": "System Error",
+    "retry": "Retry",
+    "loading": "Loading..."
+  },
+  "queueBoard": {
+    "waitingQueue": "Waiting Queue",
+    "pleaseWait": "Please wait for your number",
+    "waitingForData": "Waiting for data...",
+    "noQueuesWaiting": "No queues waiting",
+    "total": "Total:",
+    "inProgress": "In Progress",
+    "serviceCounter": "Service Counter"
+  },
+  "queueControl": {
+    "ticketId": "Ticket ID",
+    "noActions": "No actions available for this state.",
+    "industry": "Industry",
+    "lastUpdated": "Last Updated"
+  }
+}

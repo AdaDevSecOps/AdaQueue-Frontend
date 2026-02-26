@@ -1,0 +1,28 @@
+{
+  "status": {
+    "waiting": "รอในคิว",
+    "near": "ใกล้ถึงคิวแล้ว",
+    "called": "กรุณาไปที่เคาน์เตอร์ 3",
+    "unknown": "ไม่ทราบสถานะ"
+  },
+  "ticket": {
+    "number": "หมายเลขคิวของคุณ",
+    "queuesAhead": "คิวที่รออยู่",
+    "estWait": "เวลารอโดยประมาณ",
+    "min": "นาที",
+    "issued": "ออกบัตรเมื่อ",
+    "now": "ตอนนี้"
+  },
+  "actions": {
+    "notify": "แจ้งเตือนฉัน",
+    "leaveQueue": "ออกจากคิว",
+    "viewDetails": "ดูรายละเอียด",
+    "hideDetails": "ซ่อนรายละเอียด"
+  },
+  "details": {
+    "serviceType": "ประเภทบริการ",
+    "date": "วันที่",
+    "location": "สถานที่"
+  },
+  "footer": "ขับเคลื่อนโดย AdaQueue"
+}

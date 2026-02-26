@@ -1,0 +1,174 @@
+{
+  "dashboard": {
+    "title": "Admin Dashboard",
+    "subtitle": "Real-time queue monitoring and performance analytics",
+    "refresh": "Refresh",
+    "failedLoad": "Failed to load data",
+    "stats": {
+      "totalTickets": "Total Tickets",
+      "avgWaitTime": "Avg Wait Time",
+      "activeCounters": "Active Counters",
+      "servedToday": "Served Today"
+    },
+    "chart": {
+      "trafficOverview": "Traffic Overview",
+      "today": "Today",
+      "thisWeek": "This Week",
+      "thisMonth": "This Month"
+    },
+    "serviceHealth": "Service Health",
+    "operational": "OPERATIONAL",
+    "systemAlerts": "System Alerts",
+    "alerts": {
+      "highWaitTitle": "High Wait Time Warning",
+      "highWaitDesc": "Zone A average wait time exceeded 20 mins.",
+      "paperLowTitle": "Paper Low",
+      "paperLowDesc": "Kiosk #03 reported paper level at 15%."
+    }
+  },
+  "report": {
+    "title": "Staff & SLA Performance Report",
+    "lastRefreshed": "Last refreshed: 2 minutes ago",
+    "share": "Share",
+    "exportReport": "Export Report",
+    "filters": {
+      "branch": "Branch: Downtown Central",
+      "zone": "Zone: Service Hall A",
+      "staffRole": "Staff Role: All Staff",
+      "date": "Date: Last 30 Days"
+    },
+    "summary": {
+      "overallSla": "Overall SLA Compliance",
+      "totalTickets": "Total Tickets Handled",
+      "avgWaitTime": "Avg. Wait Time",
+      "avgCsat": "Avg. CSAT Score"
+    },
+    "heatmap": {
+      "title": "Queue Density Heatmap",
+      "lowTraffic": "Low Traffic",
+      "peakLoad": "Peak Load",
+      "tickets": "Tickets"
+    },
+    "table": {
+      "title": "Staff Performance Metrics",
+      "staffMember": "Staff Member / ID",
+      "roleCounter": "Role / Counter",
+      "ticketsHandled": "Tickets Handled",
+      "aht": "Avg. Handling Time (AHT)",
+      "slaCompliance": "SLA Compliance",
+      "slaBreaches": "SLA Breaches",
+      "csat": "CSAT"
+    },
+    "pagination": {
+      "showing": "Showing {{from}} to {{to}} of {{total}} staff members",
+      "previous": "Previous",
+      "next": "Next"
+    }
+  },
+  "workflow": {
+    "title": "Workflow Designer",
+    "online": "Online",
+    "switchProfile": "Switch Profile",
+    "createNewProfile": "Create New Profile",
+    "overview": {
+      "queueTypes": "Queue Types",
+      "servicePoints": "Service Points",
+      "kiosks": "Kiosks",
+      "displayBoards": "Display Boards",
+      "queueConfig": "Queue Configuration",
+      "createNewQueue": "Create New Queue",
+      "states": "States",
+      "configure": "Configure"
+    },
+    "saving": "Saving...",
+    "saveChanges": "Save Changes",
+    "savingSuccess": "Workflow saved successfully to Database!",
+    "kiosk": {
+      "title": "Kiosk Configuration",
+      "subtitle": "Manage kiosks connected to this profile and their visible queues.",
+      "addKiosk": "Add Kiosk",
+      "nameLabel": "Kiosk Name (Internal)",
+      "displayTitle": "Display Title (Public)",
+      "description": "Description",
+      "deviceCode": "Device Code",
+      "removeKiosk": "Remove Kiosk",
+      "visibleQueues": "Visible Queue Types",
+      "noQueueTypes": "No Queue Types defined in this profile yet.",
+      "noKiosks": "No Kiosks Configured",
+      "noKiosksDesc": "Add a kiosk to this profile to configure which queues it displays.",
+      "createFirst": "Create First Kiosk"
+    },
+    "board": {
+      "title": "Display Board Configuration",
+      "subtitle": "Manage TV screens and monitors for queue calling display.",
+      "addBoard": "Add Board",
+      "nameLabel": "Board Name (Internal)",
+      "displayTitle": "Display Title (Public)",
+      "description": "Description",
+      "deviceCode": "Device Code",
+      "removeBoard": "Remove Board",
+      "displayedQueues": "Displayed Queue Types",
+      "noQueueTypes": "No Queue Types defined in this profile yet.",
+      "noBoards": "No Display Boards Configured",
+      "noBoardsDesc": "Add a display board to show queue status to customers.",
+      "createFirst": "Create First Board"
+    },
+    "servicePoint": {
+      "title": "Service Points Configuration",
+      "subtitle": "Manage counters, rooms, and stations where staff operate.",
+      "addPoint": "Add Point",
+      "pointName": "Point Name",
+      "description": "Description",
+      "pointCode": "Point Code",
+      "removePoint": "Remove Point",
+      "supportedQueues": "Supported Queues",
+      "focusStates": "Focus States"
+    },
+    "queueDetail": {
+      "workflowDesign": "Workflow Design",
+      "generalSettings": "General Settings",
+      "flowSteps": "Flow Steps",
+      "addStep": "Add Step",
+      "stepName": "Step Name",
+      "stepType": "Step Type",
+      "stepTypeDesc": "Determines how the system treats this step.",
+      "estDuration": "Est. Duration (Minutes)",
+      "transitions": "Transitions (Next Steps)",
+      "addTransition": "Add Transition",
+      "noTransitions": "No transitions defined. This state is a dead-end.",
+      "actionLabel": "Action Button Label",
+      "targetState": "Target State",
+      "selectState": "Select a state from the list to edit",
+      "queueName": "Queue Name",
+      "queueCode": "Queue Code (ID)",
+      "priority": "Priority",
+      "stateType": {
+        "initial": "INITIAL (Start Point)",
+        "normal": "NORMAL (Process Step)",
+        "final": "FINAL (End Point)"
+      }
+    },
+    "modal": {
+      "createTitle": "Create New Profile",
+      "editTitle": "Edit Profile",
+      "profileName": "Profile Name",
+      "agencyCode": "Agency Code (Optional)",
+      "agencyCodeHint": "For multi-tenant or branch filtering.",
+      "descriptionLabel": "Description (Optional)",
+      "displayByWorkflow": "Display queue by workflow",
+      "workflowOn": "Enabled — Display by workflow steps",
+      "workflowOff": "Disabled — Display as 3 fixed columns",
+      "cancel": "Cancel",
+      "createBtn": "Create Profile",
+      "saveBtn": "Save Changes"
+    },
+    "confirm": {
+      "deleteProfile": "Are you sure you want to delete profile \"{{name}}\"? This cannot be undone.",
+      "deleteKiosk": "Are you sure you want to delete this kiosk?",
+      "deletePoint": "Are you sure you want to delete this service point?",
+      "deleteBoard": "Are you sure you want to delete this display board?",
+      "deleteState": "Delete this state?",
+      "onlyState": "Cannot delete the only state."
+    }
+  }
+}
