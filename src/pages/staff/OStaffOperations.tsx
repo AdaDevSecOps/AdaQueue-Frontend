@@ -65,7 +65,7 @@ const OStaffOperations: React.FC = () => {
   const [currentQueue, setCurrentQueue] = useState<any | null>(null);
   const [selectedServiceGroup, setSelectedServiceGroup] = useState('ALL');
   const [selectedQueueDocNo, setSelectedQueueDocNo] = useState<string | null>(null);
-  
+
   // Workflow State
   const [workflow, setWorkflow] = useState<IWorkflowDefinition | null>(null);
   const [selectedPointCode, setSelectedPointCode] = useState<string>('');
@@ -81,179 +81,179 @@ const OStaffOperations: React.FC = () => {
   const NEAR_SLA_MINUTES = 15;
 
   // 1. Initial Startup Check
-    useEffect(() => {
-        const initStartup = async () => {
-            setLoading(true);
-            
-            // 1. Load Profiles (Backend -> LS -> Mock)
-            const loadedProfiles = await loadProfiles();
-            setProfiles(loadedProfiles);
+  useEffect(() => {
+    const initStartup = async () => {
+      setLoading(true);
 
-            // Strict Mode: No LocalStorage Session Restore
-            // Always force mandatory two-step selection
+      // 1. Load Profiles (Backend -> LS -> Mock)
+      const loadedProfiles = await loadProfiles();
+      setProfiles(loadedProfiles);
 
-            if (loadedProfiles.length > 0) {
-                setStartupStep('select_profile');
-            } else {
-                // No profiles
-                // setStartupStep('init'); // stay or show error
-            }
-            
-            setLoading(false);
-        };
+      // Strict Mode: No LocalStorage Session Restore
+      // Always force mandatory two-step selection
 
-        initStartup();
-    }, []);
+      if (loadedProfiles.length > 0) {
+        setStartupStep('select_profile');
+      } else {
+        // No profiles
+        // setStartupStep('init'); // stay or show error
+      }
+
+      setLoading(false);
+    };
+
+    initStartup();
+  }, []);
 
   // --- Mock Helpers ---
   // In real app, these would be API calls
   const loadProfiles = async (): Promise<IProfileOption[]> => {
     const url = apiPath('/api/profile');
     const startTime = performance.now();
-    
+
     console.groupCollapsed(`🔵 GET ${url}`);
     console.log('📤 REQUEST:', {
-        method: 'GET',
-        url: url,
-        timestamp: new Date().toISOString()
+      method: 'GET',
+      url: url,
+      timestamp: new Date().toISOString()
     });
-    
+
     try {
-        const res = await fetch(url);
-        const duration = Math.round(performance.now() - startTime);
-        const contentType = res.headers.get("content-type");
-        
-        console.log('📥 RESPONSE:', {
-            status: res.status,
-            statusText: res.statusText,
-            ok: res.ok,
-            duration: `${duration}ms`,
-            headers: {
-                'content-type': contentType
-            }
-        });
+      const res = await fetch(url);
+      const duration = Math.round(performance.now() - startTime);
+      const contentType = res.headers.get("content-type");
 
-        if (res.ok) {
-            if (contentType && contentType.indexOf("application/json") !== -1) {
-                const data = await res.json();
-                console.log('📦 RESPONSE DATA:', data);
-
-                const profiles = data.map((p: any) => ({
-                    code: p.code,
-                    name: p.name,
-                    description: p.name
-                }));
-                console.log('✅ SUCCESS: Loaded', profiles.length, 'profiles');
-                console.groupEnd();
-                return profiles;
-            } else {
-                console.error("❌ FAILED: Received non-JSON response");
-                console.groupEnd();
-            }
-        } else {
-            console.error(`❌ FAILED: ${res.status} ${res.statusText}`);
-            console.groupEnd();
+      console.log('📥 RESPONSE:', {
+        status: res.status,
+        statusText: res.statusText,
+        ok: res.ok,
+        duration: `${duration}ms`,
+        headers: {
+          'content-type': contentType
         }
-    } catch (e) {
-        console.error('❌ ERROR:', e);
+      });
+
+      if (res.ok) {
+        if (contentType && contentType.indexOf("application/json") !== -1) {
+          const data = await res.json();
+          console.log('📦 RESPONSE DATA:', data);
+
+          const profiles = data.map((p: any) => ({
+            code: p.code,
+            name: p.name,
+            description: p.name
+          }));
+          console.log('✅ SUCCESS: Loaded', profiles.length, 'profiles');
+          console.groupEnd();
+          return profiles;
+        } else {
+          console.error("❌ FAILED: Received non-JSON response");
+          console.groupEnd();
+        }
+      } else {
+        console.error(`❌ FAILED: ${res.status} ${res.statusText}`);
         console.groupEnd();
+      }
+    } catch (e) {
+      console.error('❌ ERROR:', e);
+      console.groupEnd();
     }
     return [];
   };
 
   const loadWorkflowForProfile = async (profileCode: string): Promise<IWorkflowDefinition | null> => {
-      const url = apiPath(`/api/workflow-designer/${profileCode}`);
-      const startTime = performance.now();
-      
-      console.groupCollapsed(`🟣 GET ${url}`);
-      console.log('📤 REQUEST:', {
-          method: 'GET',
-          url: url,
-          params: { profileCode },
-          timestamp: new Date().toISOString()
+    const url = apiPath(`/api/workflow-designer/${profileCode}`);
+    const startTime = performance.now();
+
+    console.groupCollapsed(`🟣 GET ${url}`);
+    console.log('📤 REQUEST:', {
+      method: 'GET',
+      url: url,
+      params: { profileCode },
+      timestamp: new Date().toISOString()
+    });
+
+    try {
+      const res = await fetch(url);
+      const duration = Math.round(performance.now() - startTime);
+
+      console.log('📥 RESPONSE:', {
+        status: res.status,
+        statusText: res.statusText,
+        ok: res.ok,
+        duration: `${duration}ms`,
+        headers: {
+          'content-type': res.headers.get('content-type')
+        }
       });
-      
-      try {
-            const res = await fetch(url);
-            const duration = Math.round(performance.now() - startTime);
-            
-            console.log('📥 RESPONSE:', {
-                status: res.status,
-                statusText: res.statusText,
-                ok: res.ok,
-                duration: `${duration}ms`,
-                headers: {
-                    'content-type': res.headers.get('content-type')
-                }
-            });
 
-            if (res.ok) {
-                const data = await res.json();
-                console.log('📦 RESPONSE DATA:', data);
-                
-                // Transform backend data to frontend model if needed
-                // Backend: servicePoints, kiosks, etc inside 'config'
-                // But the API /api/workflow-designer/:code returns the MERGED object directly
-                
-                // Map backend 'initialState' (if not present, default to 'PENDING')
-                const initialState = data.initialState || 'PENDING';
+      if (res.ok) {
+        const data = await res.json();
+        console.log('📦 RESPONSE DATA:', data);
 
-                // Ensure states exist
-                const states = data.states || {
-                    'PENDING': { code: 'PENDING', label: 'Pending', type: 'INITIAL', transitions: [] },
-                    'COMPLETED': { code: 'COMPLETED', label: 'Completed', type: 'FINAL', transitions: [] }
-                };
+        // Transform backend data to frontend model if needed
+        // Backend: servicePoints, kiosks, etc inside 'config'
+        // But the API /api/workflow-designer/:code returns the MERGED object directly
 
-                const workflow = {
-                    profileCode: profileCode,
-                    profileName: data.profileName,
-                    industry: data.industry || 'General',
-                    initialState: initialState,
-                    states: states,
-                    serviceGroups: data.serviceGroups || [],
-                    servicePoints: data.servicePoints || []
-                };
-                
-                console.log('📊 SUMMARY:', {
-                    profileCode: workflow.profileCode,
-                    profileName: workflow.profileName,
-                    serviceGroups: workflow.serviceGroups.length,
-                    servicePoints: workflow.servicePoints.length,
-                    states: Object.keys(workflow.states).length
-                });
-                console.log('✅ SUCCESS: Workflow loaded');
-                console.groupEnd();
-                
-                return workflow;
-            } else {
-                console.error('❌ FAILED:', res.status, res.statusText);
-                console.groupEnd();
-                setError("Failed to load workflow configuration.");
-            }
-       } catch (apiErr) {
-           console.error('❌ ERROR:', apiErr);
-           console.groupEnd();
-           setError("Failed to load workflow configuration.");
-       }
-       return null;
+        // Map backend 'initialState' (if not present, default to 'PENDING')
+        const initialState = data.initialState || 'PENDING';
+
+        // Ensure states exist
+        const states = data.states || {
+          'PENDING': { code: 'PENDING', label: 'Pending', type: 'INITIAL', transitions: [] },
+          'COMPLETED': { code: 'COMPLETED', label: 'Completed', type: 'FINAL', transitions: [] }
+        };
+
+        const workflow = {
+          profileCode: profileCode,
+          profileName: data.profileName,
+          industry: data.industry || 'General',
+          initialState: initialState,
+          states: states,
+          serviceGroups: data.serviceGroups || [],
+          servicePoints: data.servicePoints || []
+        };
+
+        console.log('📊 SUMMARY:', {
+          profileCode: workflow.profileCode,
+          profileName: workflow.profileName,
+          serviceGroups: workflow.serviceGroups.length,
+          servicePoints: workflow.servicePoints.length,
+          states: Object.keys(workflow.states).length
+        });
+        console.log('✅ SUCCESS: Workflow loaded');
+        console.groupEnd();
+
+        return workflow;
+      } else {
+        console.error('❌ FAILED:', res.status, res.statusText);
+        console.groupEnd();
+        setError("Failed to load workflow configuration.");
+      }
+    } catch (apiErr) {
+      console.error('❌ ERROR:', apiErr);
+      console.groupEnd();
+      setError("Failed to load workflow configuration.");
+    }
+    return null;
   };
 
   const handleSelectProfile = async (profile: IProfileOption) => {
-      setLoading(true);
-      setSelectedProfile(profile);
-      try { localStorage.setItem('adaqueue_selected_profile', profile.code); } catch {}
-      
-      const wf = await loadWorkflowForProfile(profile.code);
-      setWorkflow(wf);
-      
-      setStartupStep('select_point');
-      setLoading(false);
+    setLoading(true);
+    setSelectedProfile(profile);
+    try { localStorage.setItem('adaqueue_selected_profile', profile.code); } catch { }
+
+    const wf = await loadWorkflowForProfile(profile.code);
+    setWorkflow(wf);
+
+    setStartupStep('select_point');
+    setLoading(false);
   };
 
   const handleSelectPoint = (pointCode: string) => {
-      setSelectedPointCode(pointCode);
-      try { localStorage.setItem('adaqueue_staff_point', pointCode); } catch {}
-      setStartupStep('ready');
+    setSelectedPointCode(pointCode);
+    try { localStorage.setItem('adaqueue_staff_point', pointCode); } catch { }
+    setStartupStep('ready');
   };
 
   const fetchQueues = useCallback(async () => {
@@ -290,7 +290,7 @@ const OStaffOperations: React.FC = () => {
           const waitedMs = Date.now() - dateExpire;
           const waitedMin = Math.max(0, Math.floor(waitedMs / 60000));
           return {
-            no: q.docNo || `${groupCode}-${String(q.queueNo).padStart(3,'0')}`,
+            no: q.docNo || `${groupCode}-${String(q.queueNo).padStart(3, '0')}`,
             docNo: q.docNo,
             queueNo: q.queueNo,
             channel: 'Walk-in',
@@ -336,8 +336,8 @@ const OStaffOperations: React.FC = () => {
   useEffect(() => {
     if (!currentQueueStorageKey) return;
     if (currentQueue?.docNo) {
-      try { localStorage.setItem(currentQueueStorageKey, currentQueue.docNo); } catch {}
-    } 
+      try { localStorage.setItem(currentQueueStorageKey, currentQueue.docNo); } catch { }
+    }
     // else {
     //   try { localStorage.removeItem(currentQueueStorageKey); } catch {}
     // }
@@ -370,7 +370,7 @@ const OStaffOperations: React.FC = () => {
         // Queue no longer exists (finished/cancelled) — clear stale entry
         localStorage.removeItem(currentQueueStorageKey);
       }
-    } catch {}
+    } catch { }
   }, [queueList, currentQueueStorageKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -378,8 +378,13 @@ const OStaffOperations: React.FC = () => {
     const base = (process.env.REACT_APP_API_BASE || '').trim();
     const url = base && base.startsWith('http') ? base.replace(/\/+$/, '') : window.location.origin;
     const socket: Socket = io(`${url}/ws`, { path: '/socket.io', transports: ['websocket'], autoConnect: true, withCredentials: false, reconnection: true });
-    
+
     const handler = (evt: any) => {
+      console.groupCollapsed(`🔌 WEBSOCKET [queue:update]`);
+      console.log('📥 MESSAGE RECEIVED:', { timestamp: new Date().toISOString() });
+      console.log('📦 EVENT DATA:', evt);
+      console.groupEnd();
+
       const q = evt?.queue;
       const pid = q?.data?.profileId || q?.profileCode;
       if (pid && pid === selectedProfile.code) {
@@ -409,7 +414,7 @@ const OStaffOperations: React.FC = () => {
 
     const url = apiPath('/api/staff/console/call-next');
     const startTime = performance.now();
-    
+
     const resolveServiceGroupCode = () => {
       if (selectedQueueDocNo) {
         const q = queueList.find((x: any) => x.no === selectedQueueDocNo);
@@ -422,7 +427,7 @@ const OStaffOperations: React.FC = () => {
 
     const groupCode = resolveServiceGroupCode();
     const groupDef = workflow?.serviceGroups?.find(g => g.code === groupCode);
-    
+
     const determineNextAfterWaiting = () => {
       const statesMap: Record<string, IStateDefinition> | undefined = (groupDef?.states as any);
       if (statesMap?.['STATE_2']) return 'STATE_2';
@@ -430,7 +435,7 @@ const OStaffOperations: React.FC = () => {
       if (normals.length > 0) return normals[0].code;
       return 'CALLING';
     };
-    
+
     const requestBody: any = {
       profileId: selectedProfile.code,
       serviceGroup: (() => {
@@ -444,7 +449,7 @@ const OStaffOperations: React.FC = () => {
       })(),
       targetStatus: determineNextAfterWaiting()
     };
-    
+
     // If a queue is selected, add docNo for priority/skip queue
     if (selectedQueueDocNo) {
       requestBody.docNo = selectedQueueDocNo;
@@ -456,13 +461,13 @@ const OStaffOperations: React.FC = () => {
       requestBody.refId = selectedPoint.name;
       requestBody.refType = selectedPoint.code;
     }
-    
+
     console.groupCollapsed(`🟡 POST ${url}${selectedQueueDocNo ? ' (ข้ามคิว/เรียกคิวพิเศษ)' : ' (เรียกคิวถัดไป)'}`);
     console.log('📤 REQUEST:', {
-        method: 'POST',
-        url: url,
-        body: requestBody,
-        timestamp: new Date().toISOString()
+      method: 'POST',
+      url: url,
+      body: requestBody,
+      timestamp: new Date().toISOString()
     });
 
     try {
@@ -473,24 +478,24 @@ const OStaffOperations: React.FC = () => {
         },
         body: JSON.stringify(requestBody)
       });
-      
+
       const duration = Math.round(performance.now() - startTime);
-      
+
       console.log('📥 RESPONSE:', {
-          status: res.status,
-          statusText: res.statusText,
-          ok: res.ok,
-          duration: `${duration}ms`,
-          headers: {
-              'content-type': res.headers.get('content-type')
-          }
+        status: res.status,
+        statusText: res.statusText,
+        ok: res.ok,
+        duration: `${duration}ms`,
+        headers: {
+          'content-type': res.headers.get('content-type')
+        }
       });
 
       if (res.ok) {
         const data = await res.json();
         console.log('📦 RESPONSE DATA:', data);
         console.log('✅ SUCCESS:', data.message || 'เรียกคิวสำเร็จ');
-        
+
         if (data.queue) {
           console.log('🎫 QUEUE INFO:', {
             docNo: data.queue.docNo,
@@ -502,13 +507,13 @@ const OStaffOperations: React.FC = () => {
           });
         }
         console.groupEnd();
-        
+
         // Update current queue display
         if (data.queue) {
           const qData = data.queue.data || {};
           const groupCode = data.queue.queueType || qData.serviceGroup || 'General';
           const groupName = workflow?.serviceGroups?.find(g => g.code === groupCode)?.name || groupCode || 'General';
-          
+
           setCurrentQueue({
             docNo: data.queue.docNo,
             number: data.queue.ticketNo,
@@ -519,13 +524,13 @@ const OStaffOperations: React.FC = () => {
             customerName: data.queue.customerName,
             tel: data.queue.tel
           });
-          
+
           // Clear selection after successful call
           setSelectedQueueDocNo(null);
         }
-        
+
         // Refresh queue list (no polling; ensure UI reflects CALLING status)
-        try { await fetchQueues(); } catch {}
+        try { await fetchQueues(); } catch { }
       } else {
         const errorData = await res.json().catch(() => null);
         console.error('❌ FAILED:', res.status, res.statusText);
@@ -599,7 +604,7 @@ const OStaffOperations: React.FC = () => {
     const statesMap = groupDef?.states as Record<string, IStateDefinition> | undefined;
     const isFinalState = nextInfo ? statesMap?.[nextInfo.code]?.type === 'FINAL' : false;
     const targetStatus = isFinalState ? 'FINISH' : nextState;
-    
+
     // Prefer workflow execution endpoint; fallback to finish API if cannot determine
     const useAdvanceApi = !!nextInfo;
     const url = useAdvanceApi ? apiPath('/api/staff/console/start-process') : apiPath('/api/staff/queue/finish');
@@ -625,10 +630,10 @@ const OStaffOperations: React.FC = () => {
       });
       if (res.ok) {
         if (targetStatus === 'FINISH' && currentQueueStorageKey) {
-          try { localStorage.removeItem(currentQueueStorageKey); } catch {}
+          try { localStorage.removeItem(currentQueueStorageKey); } catch { }
         }
         const data = await res.json().catch(() => ({}));
-        
+
         const isFinal = (code: string | null) => {
           if (!code) return false;
           const groupDef = workflow.serviceGroups.find(g => g.code === currentQueue.group);
@@ -639,7 +644,7 @@ const OStaffOperations: React.FC = () => {
 
         const newState = useAdvanceApi ? nextState : 'FINAL';
         console.log('✅ SUCCESS:', { newState, response: data });
-        
+
         if (useAdvanceApi) {
           if (isFinal(nextState)) {
             setCurrentQueue(null);
@@ -649,7 +654,7 @@ const OStaffOperations: React.FC = () => {
         } else {
           setCurrentQueue(null);
         }
-        try { await fetchQueues(); } catch {}
+        try { await fetchQueues(); } catch { }
       } else {
         const errorData = await res.json().catch(() => null);
         console.error('❌ FAILED:', res.status, res.statusText);
@@ -672,17 +677,17 @@ const OStaffOperations: React.FC = () => {
     const url = apiPath('/api/staff/console/skip');
     const payload = { docNo: currentQueue.docNo };
     const startTime = performance.now();
-    
+
     console.groupCollapsed(`🟠 POST ${url} (SKIP TICKET)`);
     console.log('📤 REQUEST:', { method: 'POST', url, body: payload, timestamp: new Date().toISOString() });
-    
+
     try {
       const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      
+
       const duration = Math.round(performance.now() - startTime);
       console.log('📥 RESPONSE:', {
         status: res.status,
@@ -693,11 +698,11 @@ const OStaffOperations: React.FC = () => {
 
       if (res.ok) {
         if (currentQueueStorageKey) {
-          try { localStorage.removeItem(currentQueueStorageKey); } catch {}
+          try { localStorage.removeItem(currentQueueStorageKey); } catch { }
         }
         console.log('✅ SUCCESS: Ticket skipped');
         setCurrentQueue(null);
-        try { await fetchQueues(); } catch {}
+        try { await fetchQueues(); } catch { }
       } else {
         console.error('❌ FAILED:', res.status, res.statusText);
       }
@@ -732,17 +737,17 @@ const OStaffOperations: React.FC = () => {
     const url = apiPath('/api/staff/console/cancel');
     const payload = { docNo: docNoToCancel };
     const startTime = performance.now();
-    
+
     console.groupCollapsed(`🟠 POST ${url} (CANCEL QUEUE)`);
     console.log('📤 REQUEST:', { method: 'POST', url, body: payload, timestamp: new Date().toISOString() });
-    
+
     try {
       const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      
+
       const duration = Math.round(performance.now() - startTime);
       console.log('📥 RESPONSE:', {
         status: res.status,
@@ -754,12 +759,12 @@ const OStaffOperations: React.FC = () => {
       if (res.ok) {
         console.log(upcomingTab)
         if (currentQueueStorageKey && upcomingTab === 'inprogress') {
-          try { localStorage.removeItem(currentQueueStorageKey); } catch {}
+          try { localStorage.removeItem(currentQueueStorageKey); } catch { }
           setCurrentQueue(null);
         }
         console.log('✅ SUCCESS: Ticket cancelled');
         setSelectedQueueDocNo(null);
-        try { await fetchQueues(); } catch {}
+        try { await fetchQueues(); } catch { }
       } else {
         console.error('❌ FAILED:', res.status, res.statusText);
       }
@@ -772,106 +777,106 @@ const OStaffOperations: React.FC = () => {
 
   // Render: Loading
   if (error) {
-      return (
-          <div className="flex items-center justify-center h-screen bg-gray-900 text-white">
-              <div className="text-center p-8 bg-gray-800 rounded-2xl border border-red-500/50 max-w-md mx-4">
-                  <AlertTriangle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-                  <h2 className="text-2xl font-bold mb-2">System Error</h2>
-                  <p className="text-gray-400 mb-6">{error}</p>
-                  <button onClick={() => window.location.reload()} className="px-6 py-2 bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors">
-                      Retry
-                  </button>
-              </div>
-          </div>
-      );
+    return (
+      <div className="flex items-center justify-center h-screen bg-gray-900 text-white">
+        <div className="text-center p-8 bg-gray-800 rounded-2xl border border-red-500/50 max-w-md mx-4">
+          <AlertTriangle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold mb-2">System Error</h2>
+          <p className="text-gray-400 mb-6">{error}</p>
+          <button onClick={() => window.location.reload()} className="px-6 py-2 bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors">
+            Retry
+          </button>
+        </div>
+      </div>
+    );
   }
 
   if (loading && startupStep === 'init') {
-      return (
-          <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-              <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-blue-500"></div>
-          </div>
-      );
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
   }
 
   // Render: Step 1 - Select Profile
   if (startupStep === 'select_profile') {
-      return (
-        <div className="flex flex-col items-center justify-center min-h-screen bg-gray-900 text-white p-6">
-            <div className="max-w-2xl w-full bg-gray-800 rounded-2xl shadow-2xl p-8 border border-gray-700">
-                <div className="text-center mb-8">
-                    <h1 className="text-3xl font-bold mb-2">Staff Login</h1>
-                    <p className="text-gray-400">Select working environment</p>
-                </div>
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-900 text-white p-6">
+        <div className="max-w-2xl w-full bg-gray-800 rounded-2xl shadow-2xl p-8 border border-gray-700">
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold mb-2">Staff Login</h1>
+            <p className="text-gray-400">Select working environment</p>
+          </div>
 
-                <div className="space-y-4">
-                    {profiles.length === 0 ? (
-                        <div className="text-center py-8 text-gray-500">
-                             No profiles found. Please contact administrator.
-                        </div>
-                    ) : (
-                        profiles.map((profile) => (
-                            <button
-                                key={profile.code}
-                                onClick={() => handleSelectProfile(profile)}
-                                className="w-full flex items-center justify-between p-4 bg-gray-700 hover:bg-gray-600 rounded-xl transition-colors border border-gray-600 hover:border-blue-500 group"
-                            >
-                                <div className="text-left">
-                                    <h3 className="text-lg font-bold text-white group-hover:text-blue-400">{profile.name}</h3>
-                                    <p className="text-sm text-gray-400">{profile.description}</p>
-                                </div>
-                                <ArrowRight className="w-5 h-5 text-gray-500 group-hover:text-blue-400" />
-                            </button>
-                        ))
-                    )}
-                </div>
-            </div>
+          <div className="space-y-4">
+            {profiles.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                No profiles found. Please contact administrator.
+              </div>
+            ) : (
+              profiles.map((profile) => (
+                <button
+                  key={profile.code}
+                  onClick={() => handleSelectProfile(profile)}
+                  className="w-full flex items-center justify-between p-4 bg-gray-700 hover:bg-gray-600 rounded-xl transition-colors border border-gray-600 hover:border-blue-500 group"
+                >
+                  <div className="text-left">
+                    <h3 className="text-lg font-bold text-white group-hover:text-blue-400">{profile.name}</h3>
+                    <p className="text-sm text-gray-400">{profile.description}</p>
+                  </div>
+                  <ArrowRight className="w-5 h-5 text-gray-500 group-hover:text-blue-400" />
+                </button>
+              ))
+            )}
+          </div>
         </div>
-      );
+      </div>
+    );
   }
 
   // Render: Step 2 - Select Service Point (Role)
   if (startupStep === 'select_point') {
-      return (
-        <div className="flex flex-col items-center justify-center min-h-screen bg-gray-900 text-white p-6">
-            <div className="max-w-2xl w-full bg-gray-800 rounded-2xl shadow-2xl p-8 border border-gray-700">
-                <div className="text-center mb-8">
-                    <h1 className="text-3xl font-bold mb-2">Select Station</h1>
-                    <p className="text-gray-400">Where are you working today?</p>
-                    <div className="mt-2 inline-block px-3 py-1 bg-blue-900/30 text-blue-400 rounded-full text-sm border border-blue-800">
-                        {selectedProfile?.name}
-                    </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {workflow?.servicePoints.map((point) => (
-                        <button
-                            key={point.code}
-                            onClick={() => handleSelectPoint(point.code)}
-                            className="flex flex-col items-center justify-center p-6 bg-gray-700 hover:bg-gray-600 rounded-xl transition-all border border-gray-600 hover:border-green-500 group text-center h-32"
-                        >
-                            <Monitor className="w-8 h-8 text-gray-400 mb-3 group-hover:text-green-400" />
-                            <h3 className="font-bold text-white group-hover:text-green-300">{point.name}</h3>
-                            {point.description && <p className="text-xs text-gray-400 mt-1">{point.description}</p>}
-                        </button>
-                    ))}
-                </div>
-
-                 <div className="mt-8 text-center">
-                    <button 
-                        onClick={() => {
-                            localStorage.removeItem('adaqueue_selected_profile');
-                            localStorage.removeItem('adaqueue_staff_point');
-                            setStartupStep('select_profile');
-                        }}
-                        className="text-gray-500 hover:text-white underline text-sm"
-                    >
-                        Switch Profile
-                    </button>
-                </div>
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-900 text-white p-6">
+        <div className="max-w-2xl w-full bg-gray-800 rounded-2xl shadow-2xl p-8 border border-gray-700">
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold mb-2">Select Station</h1>
+            <p className="text-gray-400">Where are you working today?</p>
+            <div className="mt-2 inline-block px-3 py-1 bg-blue-900/30 text-blue-400 rounded-full text-sm border border-blue-800">
+              {selectedProfile?.name}
             </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {workflow?.servicePoints.map((point) => (
+              <button
+                key={point.code}
+                onClick={() => handleSelectPoint(point.code)}
+                className="flex flex-col items-center justify-center p-6 bg-gray-700 hover:bg-gray-600 rounded-xl transition-all border border-gray-600 hover:border-green-500 group text-center h-32"
+              >
+                <Monitor className="w-8 h-8 text-gray-400 mb-3 group-hover:text-green-400" />
+                <h3 className="font-bold text-white group-hover:text-green-300">{point.name}</h3>
+                {point.description && <p className="text-xs text-gray-400 mt-1">{point.description}</p>}
+              </button>
+            ))}
+          </div>
+
+          <div className="mt-8 text-center">
+            <button
+              onClick={() => {
+                localStorage.removeItem('adaqueue_selected_profile');
+                localStorage.removeItem('adaqueue_staff_point');
+                setStartupStep('select_profile');
+              }}
+              className="text-gray-500 hover:text-white underline text-sm"
+            >
+              Switch Profile
+            </button>
+          </div>
         </div>
-      );
+      </div>
+    );
   }
 
   // Fetch Workflow Data (Legacy effect removed/replaced by checkProfiles)
@@ -922,18 +927,18 @@ const OStaffOperations: React.FC = () => {
 
   // Filter queues based on selected service group AND selected service point focus states
   const filteredQueues = (() => {
-      let result = queueList;
+    let result = queueList;
 
-      // 1. Filter by status: Only WAITING or empty string
-      result = result.filter(q => q.state === 'WAITING' || q.state === '');
+    // 1. Filter by status: Only WAITING or empty string
+    result = result.filter(q => q.state === 'WAITING' || q.state === '');
 
-      // 2. Service Group + Point filters
-      result = applyBaseFilters(result);
+    // 2. Service Group + Point filters
+    result = applyBaseFilters(result);
 
-      // 3. FIFO Sorting (Sort by created time)
-      result = result.sort((a, b) => a.created - b.created);
+    // 3. FIFO Sorting (Sort by created time)
+    result = result.sort((a, b) => a.created - b.created);
 
-      return result;
+    return result;
   })();
 
   // In-Progress queues: state matches any NORMAL-type state in the workflow
@@ -1002,7 +1007,7 @@ const OStaffOperations: React.FC = () => {
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900 font-sans transition-colors duration-200">
-      
+
       {/* Top Bar: Operations Breadcrumb & Controls */}
       <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4 flex flex-col md:flex-row justify-between items-center gap-4 shrink-0">
         <div className="flex items-center gap-4 w-full md:w-auto">
@@ -1018,19 +1023,19 @@ const OStaffOperations: React.FC = () => {
           <div className="flex gap-2 flex-wrap justify-end">
             {/* Service Point Selector */}
             <div className="relative">
-              <select 
+              <select
                 value={selectedPointCode}
                 onChange={(e) => {
-                    const newPoint = e.target.value;
-                    setSelectedPointCode(newPoint);
-                    localStorage.setItem('staff_point_code', newPoint);
-                    if (workflow) {
-                      const point = workflow.servicePoints.find(p => p.code === newPoint);
-                      const allowedCodes = point?.serviceGroups || [];
-                      if (allowedCodes.length > 0 && selectedServiceGroup !== 'ALL' && !allowedCodes.includes(selectedServiceGroup)) {
-                        setSelectedServiceGroup('ALL');
-                      }
+                  const newPoint = e.target.value;
+                  setSelectedPointCode(newPoint);
+                  localStorage.setItem('staff_point_code', newPoint);
+                  if (workflow) {
+                    const point = workflow.servicePoints.find(p => p.code === newPoint);
+                    const allowedCodes = point?.serviceGroups || [];
+                    if (allowedCodes.length > 0 && selectedServiceGroup !== 'ALL' && !allowedCodes.includes(selectedServiceGroup)) {
+                      setSelectedServiceGroup('ALL');
                     }
+                  }
                 }}
                 className="appearance-none bg-emerald-50 dark:bg-gray-800 border-emerald-200 dark:border-gray-600 border rounded-lg py-2 pl-4 pr-10 text-sm font-bold text-emerald-700 dark:text-white focus:ring-2 focus:ring-emerald-500 dark:focus:ring-emerald-400 min-w-[180px]"
               >
@@ -1045,7 +1050,7 @@ const OStaffOperations: React.FC = () => {
 
             {/* Service Group Selector */}
             <div className="relative">
-              <select 
+              <select
                 value={selectedServiceGroup}
                 onChange={(e) => setSelectedServiceGroup(e.target.value)}
                 className="appearance-none bg-blue-50 dark:bg-gray-800 border-blue-200 dark:border-gray-600 border rounded-lg py-2 pl-4 pr-10 text-sm font-bold text-blue-700 dark:text-white focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 min-w-[160px]"
@@ -1062,21 +1067,21 @@ const OStaffOperations: React.FC = () => {
 
           {/* Status Indicators */}
           <div className="hidden lg:flex items-center gap-4 text-sm font-medium">
-             <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
-               <span className="w-2.5 h-2.5 rounded-full bg-green-500"></span>
-               {waitingCount} Waiting
-             </div>
-             <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400">
-               <span className="w-0 h-0 border-l-[5px] border-l-transparent border-r-[5px] border-r-transparent border-b-[8px] border-b-amber-500"></span>
-               {nearSlaCount} Near SLA
-             </div>
+            <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
+              <span className="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+              {waitingCount} Waiting
+            </div>
+            <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400">
+              <span className="w-0 h-0 border-l-[5px] border-l-transparent border-r-[5px] border-r-transparent border-b-[8px] border-b-amber-500"></span>
+              {nearSlaCount} Near SLA
+            </div>
           </div>
         </div>
       </div>
 
       {/* Main Content Area */}
       <div className="flex-1 overflow-y-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
-        
+
         {/* Left Panel: Upcoming Queue List */}
         <div className="lg:col-span-7 flex flex-col bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
           {/* Panel Header */}
@@ -1096,37 +1101,33 @@ const OStaffOperations: React.FC = () => {
             <div className="flex gap-1">
               <button
                 onClick={() => setUpcomingTab('waiting')}
-                className={`px-4 py-2 text-sm font-bold rounded-t-lg transition-colors relative ${
-                  upcomingTab === 'waiting'
+                className={`px-4 py-2 text-sm font-bold rounded-t-lg transition-colors relative ${upcomingTab === 'waiting'
                     ? 'text-blue-600 dark:text-blue-400 bg-white dark:bg-gray-800 border-t border-l border-r border-gray-200 dark:border-gray-700 -mb-px z-10'
                     : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-                }`}
+                  }`}
               >
                 Waiting
-                <span className={`ml-2 px-1.5 py-0.5 text-xs rounded-full ${
-                  upcomingTab === 'waiting'
+                <span className={`ml-2 px-1.5 py-0.5 text-xs rounded-full ${upcomingTab === 'waiting'
                     ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400'
                     : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
-                }`}>{filteredQueues.length}</span>
+                  }`}>{filteredQueues.length}</span>
               </button>
               <button
                 onClick={() => setUpcomingTab('inprogress')}
-                className={`px-4 py-2 text-sm font-bold rounded-t-lg transition-colors relative ${
-                  upcomingTab === 'inprogress'
+                className={`px-4 py-2 text-sm font-bold rounded-t-lg transition-colors relative ${upcomingTab === 'inprogress'
                     ? 'text-amber-600 dark:text-amber-400 bg-white dark:bg-gray-800 border-t border-l border-r border-gray-200 dark:border-gray-700 -mb-px z-10'
                     : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-                }`}
+                  }`}
               >
                 In Progress
-                <span className={`ml-2 px-1.5 py-0.5 text-xs rounded-full ${
-                  upcomingTab === 'inprogress'
+                <span className={`ml-2 px-1.5 py-0.5 text-xs rounded-full ${upcomingTab === 'inprogress'
                     ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400'
                     : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
-                }`}>{inProgressQueues.length}</span>
+                  }`}>{inProgressQueues.length}</span>
               </button>
             </div>
           </div>
-          
+
           <div className="flex-1 overflow-y-auto">
             <table className="w-full text-left">
               <thead className="bg-gray-50 dark:bg-gray-900/30 sticky top-0 z-10">
@@ -1150,8 +1151,8 @@ const OStaffOperations: React.FC = () => {
                     ? currentQueue?.docNo === queue.docNo
                     : selectedQueueDocNo === queue.no;
                   return (
-                    <tr 
-                      key={idx} 
+                    <tr
+                      key={idx}
                       onClick={() => {
                         if (upcomingTab === 'inprogress') {
                           if (currentQueue?.docNo === queue.docNo) {
@@ -1173,11 +1174,10 @@ const OStaffOperations: React.FC = () => {
                           setSelectedQueueDocNo(isSelected ? null : queue.no);
                         }
                       }}
-                      className={`transition-all cursor-pointer ${
-                        isSelected 
-                          ? 'bg-blue-100 dark:bg-blue-900/30 ring-2 ring-blue-500 dark:ring-blue-400' 
+                      className={`transition-all cursor-pointer ${isSelected
+                          ? 'bg-blue-100 dark:bg-blue-900/30 ring-2 ring-blue-500 dark:ring-blue-400'
                           : 'hover:bg-blue-50 dark:hover:bg-blue-900/10'
-                      } group`}
+                        } group`}
                     >
                       <td className="px-4 py-4 font-bold text-gray-900 dark:text-white relative">
                         {isSelected && (
@@ -1200,9 +1200,8 @@ const OStaffOperations: React.FC = () => {
                           ? getStateLabelBadge(queue.state)
                           : getStatusBadge(queue.status)}
                       </td>
-                      <td className={`px-4 py-4 font-mono font-medium ${
-                        queue.isExpired ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400'
-                      }`}>
+                      <td className={`px-4 py-4 font-mono font-medium ${queue.isExpired ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400'
+                        }`}>
                         {queue.timer} {queue.isExpired && <span className="text-xs font-bold ml-1">(EXPIRED)</span>}
                       </td>
                     </tr>
@@ -1215,20 +1214,20 @@ const OStaffOperations: React.FC = () => {
 
         {/* Right Panel: Current Action & Controls */}
         <div className="lg:col-span-5 flex flex-col gap-6">
-          
+
           {/* Active Counter Card */}
           <div className="bg-white dark:bg-gray-800 rounded-2xl border border-blue-200 dark:border-blue-900 shadow-lg overflow-hidden relative">
             <div className="bg-blue-600 p-3 flex justify-between items-center text-white">
-               <span className="font-bold tracking-wider text-sm uppercase">Now Calling</span>
-               <span className="bg-white/20 px-2 py-0.5 rounded text-xs font-bold">Active Counter</span>
+              <span className="font-bold tracking-wider text-sm uppercase">Now Calling</span>
+              <span className="bg-white/20 px-2 py-0.5 rounded text-xs font-bold">Active Counter</span>
             </div>
-            
+
             <div className="p-8 flex flex-col items-center justify-center text-center">
               {currentQueue ? (
                 <>
                   <p className="text-gray-500 dark:text-gray-400 font-medium mb-2">Customer Ticket Number</p>
                   <h1 className="text-6xl font-black text-gray-900 dark:text-white tracking-tight mb-6">{currentQueue.number}</h1>
-                  
+
                   <div className="flex gap-3 flex-wrap justify-center">
                     <span className="px-3 py-1 bg-gray-100 dark:bg-gray-700 rounded-lg text-sm text-gray-600 dark:text-gray-300 font-medium">
                       Channel: {currentQueue.channel}
@@ -1255,17 +1254,16 @@ const OStaffOperations: React.FC = () => {
 
           {/* Action Buttons Grid */}
           <div className="grid grid-cols-2 gap-4">
-            <button 
+            <button
               onClick={handleCallNext}
               disabled={!!currentQueue && !(selectedQueueDocNo && upcomingTab === 'waiting')}
               title={currentQueue && !selectedQueueDocNo ? 'มีคิวค้างอยู่ใน Now Calling กรุณาสิ้นสุดก่อน' : undefined}
-              className={`h-32 rounded-2xl text-white shadow-lg flex flex-col items-center justify-center gap-2 transition-all active:scale-95 ${
-                (currentQueue && !(selectedQueueDocNo && upcomingTab === 'waiting'))
+              className={`h-32 rounded-2xl text-white shadow-lg flex flex-col items-center justify-center gap-2 transition-all active:scale-95 ${(currentQueue && !(selectedQueueDocNo && upcomingTab === 'waiting'))
                   ? 'bg-gray-400 cursor-not-allowed opacity-60'
                   : (selectedQueueDocNo && upcomingTab === 'waiting'
-                      ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 shadow-purple-600/20'
-                      : 'bg-blue-600 hover:bg-blue-700 shadow-blue-600/20')
-              }`}
+                    ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 shadow-purple-600/20'
+                    : 'bg-blue-600 hover:bg-blue-700 shadow-blue-600/20')
+                }`}
             >
               {selectedQueueDocNo && upcomingTab === 'waiting' ? (
                 <>
@@ -1284,36 +1282,34 @@ const OStaffOperations: React.FC = () => {
                 </>
               )}
             </button>
-            
-            <button 
-              onClick={handleStartProcess} 
+
+            <button
+              onClick={handleStartProcess}
               disabled={!currentQueue}
               title={!currentQueue ? 'ยังไม่มีคิวใน Now Calling' : undefined}
-              className={`h-32 rounded-2xl text-white shadow-lg flex flex-col items-center justify-center gap-2 transition-transform active:scale-95 ${
-                !currentQueue 
-                  ? 'bg-gray-400 cursor-not-allowed opacity-60' 
+              className={`h-32 rounded-2xl text-white shadow-lg flex flex-col items-center justify-center gap-2 transition-transform active:scale-95 ${!currentQueue
+                  ? 'bg-gray-400 cursor-not-allowed opacity-60'
                   : 'bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/20'
-              }`}>
+                }`}>
               <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
               <span className="text-lg font-bold">
                 {getNextStepInfo()?.label.toUpperCase() || 'FINISH PROCESS'}
               </span>
             </button>
-            
-            <button 
+
+            <button
               onClick={handleSkipTicket}
               disabled={!currentQueue}
               title={!currentQueue ? 'ไม่มีคิวที่กำลังเรียก' : undefined}
-              className={`h-24 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-amber-600 dark:text-amber-500 flex flex-col items-center justify-center gap-1 transition ${
-                !currentQueue 
-                  ? 'opacity-40 cursor-not-allowed' 
+              className={`h-24 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-amber-600 dark:text-amber-500 flex flex-col items-center justify-center gap-1 transition ${!currentQueue
+                  ? 'opacity-40 cursor-not-allowed'
                   : 'hover:bg-amber-50 dark:hover:bg-amber-900/10'
-              }`}
+                }`}
             >
               <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11.933 12.8a1 1 0 000-1.6L6.6 7.2A1 1 0 005 8v8a1 1 0 001.6.8l5.333-4zM19.933 12.8a1 1 0 000-1.6l-5.333-4A1 1 0 0013 8v8a1 1 0 001.6.8l5.333-4z"></path></svg>
               <span className="font-bold text-sm">SKIP TICKET</span>
             </button>
-            
+
             {(() => {
               const inProgressCancel = upcomingTab === 'inprogress' && !!currentQueue;
               const isDisabled = inProgressCancel ? false : (!selectedQueueDocNo && waitingCount === 0);
@@ -1326,13 +1322,12 @@ const OStaffOperations: React.FC = () => {
                   onClick={handleCancelQueue}
                   disabled={isDisabled}
                   title={isDisabled ? 'ไม่มีคิวให้ยกเลิก' : (isSelected ? `ยกเลิกคิว ${targetTicket}` : 'ยกเลิกคิวที่รอนานที่สุด')}
-                  className={`h-24 rounded-xl flex flex-col items-center justify-center gap-1 transition ${
-                    isDisabled
+                  className={`h-24 rounded-xl flex flex-col items-center justify-center gap-1 transition ${isDisabled
                       ? 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-red-600 dark:text-red-500 opacity-40 cursor-not-allowed'
                       : isSelected
                         ? 'bg-red-50 dark:bg-red-900/20 border-2 border-red-500 dark:border-red-500 text-red-600 dark:text-red-400 ring-2 ring-red-400/30 hover:bg-red-100 dark:hover:bg-red-900/30'
                         : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-red-600 dark:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10'
-                  }`}
+                    }`}
                 >
                   <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                   {isSelected ? (
@@ -1373,24 +1368,24 @@ const OStaffOperations: React.FC = () => {
 
         </div>
       </div>
-      
+
       {/* Footer Status Bar */}
       <div className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 px-6 py-2 flex justify-between items-center text-xs font-medium text-gray-500 dark:text-gray-400 shrink-0">
-         <div className="flex gap-6">
-           <span className="flex items-center gap-1 text-green-600 dark:text-green-400">
-             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-             System Sync: Healthy
-           </span>
-           <span className="flex items-center gap-1 text-blue-600 dark:text-blue-400">
-             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-             Current Shift: 03:45:12
-           </span>
-         </div>
-         <div className="flex gap-4">
-           <button className="hover:text-gray-800 dark:hover:text-white">Help & Support</button>
-           <button className="hover:text-gray-800 dark:hover:text-white">Shortcuts</button>
-           <span>UQMS v2.4.1</span>
-         </div>
+        <div className="flex gap-6">
+          <span className="flex items-center gap-1 text-green-600 dark:text-green-400">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            System Sync: Healthy
+          </span>
+          <span className="flex items-center gap-1 text-blue-600 dark:text-blue-400">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            Current Shift: 03:45:12
+          </span>
+        </div>
+        <div className="flex gap-4">
+          <button className="hover:text-gray-800 dark:hover:text-white">Help & Support</button>
+          <button className="hover:text-gray-800 dark:hover:text-white">Shortcuts</button>
+          <span>UQMS v2.4.1</span>
+        </div>
       </div>
 
     </div>
