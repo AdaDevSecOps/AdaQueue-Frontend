@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { apiPath } from '../../config/api';
+import { QRCodeSVG } from 'qrcode.react';
 
 const OTicketIssued: React.FC = () => {
   const navigate = useNavigate();
@@ -10,6 +11,7 @@ const OTicketIssued: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [queue, setQueue] = useState<any | null>(null);
+  const [countdown, setCountdown] = useState<number>(10);
 
   useEffect(() => {
     const d = initDoc || localStorage.getItem('adaqueue_last_queue_docno') || '';
@@ -35,12 +37,45 @@ const OTicketIssued: React.FC = () => {
     run();
   }, [docNo]);
 
+  useEffect(() => {
+    if (!queue || loading || error) return;
+
+    const timer = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          navigate('/kiosk');
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [queue, loading, error, navigate]);
+
   const padded = (n: number) => String(n || 0).padStart(3, '0');
   const label = () => {
     if (!queue) return '';
     const type = queue.data?.queueType || queue.queueType || 'Q';
     // return `${type}-${queue.ticketNo}`;
     return `${queue.ticketNo}`;
+  };
+
+  const getTrackingUrl = () => {
+    if (!queue) return '';
+    try {
+      const q = label();
+      const t = new Date(queue.date).getTime();
+      const e = t + 3 * 60 * 60 * 1000; // + 3 hours
+
+      const payload = { q, t, e };
+      const token = btoa(JSON.stringify(payload));
+
+      return `${window.location.origin}/ticket?data=${token}`;
+    } catch (err) {
+      return '';
+    }
   };
 
   return (
@@ -68,11 +103,23 @@ const OTicketIssued: React.FC = () => {
             <div className="uppercase text-xs font-bold text-gray-500 tracking-[0.2em] mb-3">Your Ticket</div>
             <div className="text-7xl font-bold text-blue-400 mb-3 drop-shadow-[0_0_15px_rgba(96,165,250,0.5)]">{label()}</div>
             <h3 className="text-2xl font-bold text-white mb-2">{queue.data?.serviceGroup || queue.queueType || ''}</h3>
-            <p className="text-gray-400 text-sm mb-8">
+            <p className="text-gray-400 text-sm mb-6">
               {new Date(queue.date).toLocaleString('en-US', { hour: '2-digit', minute: '2-digit', year: 'numeric', month: 'long', day: 'numeric' })}
             </p>
-            <div className="mt-6">
-              <button onClick={() => navigate('/kiosk')} className="px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold">กลับหน้าเลือกบริการ</button>
+
+            {/* QR Code Section */}
+            <div className="bg-white p-4 rounded-xl inline-block mb-6 shadow-sm">
+              <QRCodeSVG value={getTrackingUrl()} size={140} />
+            </div>
+            <p className="text-xs text-gray-500 mb-8 max-w-[200px] mx-auto leading-relaxed">
+              สแกน QR Code เพื่อดูหมายเลขคิวบนมือถือของคุณ
+            </p>
+
+            <div className="mt-2 text-center">
+              <button onClick={() => navigate('/kiosk')} className="px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold w-full max-w-[200px] mb-3">กลับหน้าเลือกบริการ</button>
+              <div className="text-gray-400 text-sm">
+                หน้าจอกำลังจะปิดใน <span className="text-white font-bold">{countdown}</span> วินาที
+              </div>
             </div>
           </div>
         )}

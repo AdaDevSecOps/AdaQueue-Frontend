@@ -8,6 +8,7 @@ import OLogin from './pages/auth/OLogin';
 import OWelcome from './pages/kiosk/OWelcome';
 import OIssueTicket from './pages/kiosk/OIssueTicket';
 import OMobileQueueStatus from './pages/customer/OMobileQueueStatus';
+import OMobileTracking from './pages/customer/OMobileTracking';
 import ODashboard from './pages/admin/ODashboard';
 import OStaffPerformanceReport from './pages/admin/OStaffPerformanceReport';
 import OWorkflowDesigner from './pages/admin/OWorkflowDesigner';
@@ -25,9 +26,9 @@ import MainLayout from './layouts/MainLayout';
 // --- Protected Route Component ---
 const RequireAuth: React.FC = () => {
   const { token, isLoading } = useAuth();
-  
+
   if (isLoading) return <div className="flex h-screen items-center justify-center">Loading...</div>;
-  
+
   return token ? <Outlet /> : <Navigate to="/" replace />;
 };
 
@@ -35,11 +36,11 @@ const RequireAuth: React.FC = () => {
 const WelcomePage: React.FC = () => {
   const navigate = useNavigate();
   return (
-    <OWelcome 
+    <OWelcome
       onSelectCategory={(categoryId) => {
         console.log('Category Selected:', categoryId);
         navigate('/kiosk/issue', { state: { category: categoryId } });
-      }} 
+      }}
     />
   );
 };
@@ -48,21 +49,21 @@ const IssueTicketPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const category = (location.state as any)?.category || 'RESTAURANT'; // Fallback
-  
+
   // Verify Profile Exists
   const profileId = localStorage.getItem('adaqueue_selected_profile');
   if (!profileId) {
-      return <Navigate to="/kiosk" replace />;
+    return <Navigate to="/kiosk" replace />;
   }
 
   return (
-    <OIssueTicket 
-      category={category} 
+    <OIssueTicket
+      category={category}
       onConfirm={async (data) => {
         const docNo = data?.queue?.docNo || localStorage.getItem('adaqueue_last_queue_docno');
         navigate('/kiosk/ticket', { state: { docNo } });
-      }} 
-      onBack={() => navigate('/kiosk')} 
+      }}
+      onBack={() => navigate('/kiosk')}
     />
   );
 };
@@ -77,38 +78,39 @@ const App: React.FC = () => {
             <Routes>
               {/* Public Routes */}
               <Route path="/" element={<OLogin />} />
-            
-            {/* Kiosk Routes (Usually running on separate machine, maybe public or protected by simple guard) */}
-            <Route path="/kiosk" element={<WelcomePage />} />
-            <Route path="/kiosk/issue" element={<IssueTicketPage />} />
-            <Route path="/kiosk/ticket" element={<OTicketIssued />} />
-            
-            {/* Customer Mobile Route */}
-            <Route path="/q/:id" element={<OMobileQueueStatus />} />
 
-            {/* Display Board Route */}
-            <Route path="/board" element={<ODisplayBoard />} />
-            
-            {/* Staff Only Routes (Direct Access) */}
-            <Route path="/staff-direct" element={<OStaffOperations />} />
+              {/* Kiosk Routes (Usually running on separate machine, maybe public or protected by simple guard) */}
+              <Route path="/kiosk" element={<WelcomePage />} />
+              <Route path="/kiosk/issue" element={<IssueTicketPage />} />
+              <Route path="/kiosk/ticket" element={<OTicketIssued />} />
 
-            {/* Protected Admin/Staff Routes with Layout */}
-            <Route element={<RequireAuth />}>
+              {/* Customer Mobile Route */}
+              <Route path="/q/:id" element={<OMobileQueueStatus />} />
+              <Route path="/ticket" element={<OMobileTracking />} />
+
+              {/* Display Board Route */}
+              <Route path="/board" element={<ODisplayBoard />} />
+
+              {/* Staff Only Routes (Direct Access) */}
+              <Route path="/staff-direct" element={<OStaffOperations />} />
+
+              {/* Protected Admin/Staff Routes with Layout */}
+              <Route element={<RequireAuth />}>
                 <Route element={<MainLayout />}>
-                    <Route path="/admin/dashboard" element={<ODashboard />} />
-                    <Route path="/admin/reports" element={<OStaffPerformanceReport />} />
-                    <Route path="/admin/workflow" element={<OWorkflowDesigner />} />
-                    <Route path="/staff/control" element={<StaffControlPage />} />
-                    <Route path="/staff/operations" element={<OStaffOperations />} />
-                    <Route path="/staff/bulk-management" element={<OBulkQueueManagement />} />
+                  <Route path="/admin/dashboard" element={<ODashboard />} />
+                  <Route path="/admin/reports" element={<OStaffPerformanceReport />} />
+                  <Route path="/admin/workflow" element={<OWorkflowDesigner />} />
+                  <Route path="/staff/control" element={<StaffControlPage />} />
+                  <Route path="/staff/operations" element={<OStaffOperations />} />
+                  <Route path="/staff/bulk-management" element={<OBulkQueueManagement />} />
                 </Route>
-            </Route>
+              </Route>
 
-            {/* Fallback */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </div>
-      </Router>
+              {/* Fallback */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </div>
+        </Router>
       </AuthProvider>
     </ThemeProvider>
   );

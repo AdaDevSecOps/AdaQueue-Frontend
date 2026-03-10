@@ -30,6 +30,10 @@ interface IServiceGroup {
     name: string;
     description?: string;
     priority?: 'Urgent' | 'High' | 'Standard' | 'Low';
+    channelCode?: string;
+    prefix?: string;
+    isPhoneRequired?: boolean;
+    isGuestCountRequired?: boolean;
     initialState: string;
     states: Record<string, IStateDefinition>;
 }
@@ -569,6 +573,37 @@ const OWorkflowDesigner: React.FC = () => {
         setSelectedGroupCode(newCode);
         setActiveTab('queue_detail');
         setQueueDetailTab('workflow');
+    };
+
+    const deleteGroup = (groupCode: string) => {
+        if (!workflow) return;
+        if (window.confirm('คุณแน่ใจหรือไม่ว่าต้องการลบคิวนี้? การดำเนินการนี้ไม่สามารถยกเลิกได้')) {
+            const newGroups = workflow.serviceGroups.filter(g => g.code !== groupCode);
+
+            // Clean up deleted group from references
+            const newKiosks = workflow.kiosks.map(k => ({
+                ...k,
+                visibleServiceGroups: (k.visibleServiceGroups || []).filter(code => code !== groupCode)
+            }));
+            const newBoards = workflow.displayBoards.map(b => ({
+                ...b,
+                visibleServiceGroups: (b.visibleServiceGroups || []).filter(code => code !== groupCode)
+            }));
+            const newPoints = workflow.servicePoints.map(p => ({
+                ...p,
+                serviceGroups: (p.serviceGroups || []).filter(code => code !== groupCode)
+            }));
+
+            setWorkflow({
+                ...workflow,
+                serviceGroups: newGroups,
+                kiosks: newKiosks,
+                displayBoards: newBoards,
+                servicePoints: newPoints
+            });
+            setActiveTab('overview');
+            setSelectedGroupCode(null);
+        }
     };
 
     const updateKiosk = (kioskCode: string, updates: Partial<IKioskDefinition>) => {
@@ -1307,6 +1342,12 @@ const OWorkflowDesigner: React.FC = () => {
                         </div>
                     </div>
                     <div className="flex gap-2">
+                        <button
+                            onClick={() => deleteGroup(group.code)}
+                            className="bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition flex items-center gap-2"
+                        >
+                            <Trash2 className="w-4 h-4" /> ลบคิว
+                        </button>
                         <button onClick={handleSave} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition flex items-center gap-2">
                             {loading ? 'Saving...' : <><Save className="w-4 h-4" /> Save Changes</>}
                         </button>
@@ -1517,8 +1558,34 @@ const OWorkflowDesigner: React.FC = () => {
                                         value={group.description || ''}
                                         onChange={(e) => updateGroup({ description: e.target.value })}
                                         rows={3}
-                                        className="w-full p-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg"
+                                        className="w-full p-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg mb-4"
                                     />
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <label className="flex items-center gap-3 cursor-pointer p-4 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                                        <input
+                                            type="checkbox"
+                                            checked={group.isPhoneRequired || false}
+                                            onChange={(e) => updateGroup({ isPhoneRequired: e.target.checked })}
+                                            className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 focus:ring-offset-gray-900 bg-white dark:bg-gray-800"
+                                        />
+                                        <div>
+                                            <span className="text-sm font-bold text-gray-700 dark:text-gray-300">ขอเบอร์โทรศัพท์ (Kiosk)</span>
+                                            <p className="text-xs text-gray-400 mt-1">ให้ลูกค้ากรอกเบอร์โทรฯ ในหน้า Kiosk</p>
+                                        </div>
+                                    </label>
+                                    <label className="flex items-center gap-3 cursor-pointer p-4 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                                        <input
+                                            type="checkbox"
+                                            checked={group.isGuestCountRequired || false}
+                                            onChange={(e) => updateGroup({ isGuestCountRequired: e.target.checked })}
+                                            className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 focus:ring-offset-gray-900 bg-white dark:bg-gray-800"
+                                        />
+                                        <div>
+                                            <span className="text-sm font-bold text-gray-700 dark:text-gray-300">ขอจำนวนคน (Kiosk)</span>
+                                            <p className="text-xs text-gray-400 mt-1">ให้ลูกค้าระบุจำนวนคนในหน้า Kiosk</p>
+                                        </div>
+                                    </label>
                                 </div>
                                 <div className="grid grid-cols-2 gap-6">
                                     <div>
@@ -1542,6 +1609,27 @@ const OWorkflowDesigner: React.FC = () => {
                                             <option value="Urgent">Urgent</option>
                                             <option value="Low">Low</option>
                                         </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Channel Code</label>
+                                        <input
+                                            type="text"
+                                            value={group.channelCode || ''}
+                                            onChange={(e) => updateGroup({ channelCode: e.target.value })}
+                                            className="w-full p-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                            placeholder="Optional"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Prefix (ตัวอักษรนำหน้า)</label>
+                                        <input
+                                            type="text"
+                                            value={group.prefix || ''}
+                                            onChange={(e) => updateGroup({ prefix: e.target.value })}
+                                            className="w-full p-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none uppercase"
+                                            placeholder="e.g. A, B, X"
+                                            maxLength={2}
+                                        />
                                     </div>
                                 </div>
                             </div>

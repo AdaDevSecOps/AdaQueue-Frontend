@@ -5,6 +5,8 @@ import { apiPath } from "../../config/api";
 interface IServiceGroup {
   code: string;
   name: string;
+  isPhoneRequired?: boolean;
+  isGuestCountRequired?: boolean;
 }
 interface IKioskDefinition {
   code: string;
@@ -43,6 +45,8 @@ export const OIssueTicket: React.FC<IIssueTicketProps> = ({
   const [headerTitle, setHeaderTitle] = useState("AdaQueue");
   const [categoryName, setCategoryName] = useState(category);
   const [agnCode, setAgnCode] = useState("AGN");
+  const [isPhoneReq, setIsPhoneReq] = useState(false);
+  const [isGuestReq, setIsGuestReq] = useState(false);
 
   // Load Configuration
   useEffect(() => {
@@ -98,6 +102,8 @@ export const OIssueTicket: React.FC<IIssueTicketProps> = ({
             );
             if (group) {
               setCategoryName(group.name);
+              setIsPhoneReq(group.isPhoneRequired ?? false);
+              setIsGuestReq(group.isGuestCountRequired ?? false);
             } else {
               // Fallback for demo ID mapping if using "RESTAURANT" etc but config has "Q-OPD-01"
               // If category is a code not found, try to map readable if possible or keep as is
@@ -194,7 +200,7 @@ export const OIssueTicket: React.FC<IIssueTicketProps> = ({
         console.groupEnd();
         try {
           localStorage.setItem("adaqueue_last_queue_docno", data?.docNo || "");
-        } catch {}
+        } catch { }
         onConfirm({ category, pax, phone, queue: data });
       }
     } catch (e) {
@@ -261,59 +267,61 @@ export const OIssueTicket: React.FC<IIssueTicketProps> = ({
       </header>
 
       {/* Main Content */}
-      <div className="flex-1 px-8 py-6 pb-8 flex flex-col lg:flex-row gap-8 lg:gap-16 max-w-7xl mx-auto w-full">
-        {/* Left Column: Input */}
-        <div className="flex-1 flex flex-col">
-          <h1 className="text-4xl font-bold mb-8">
-            Just a few more details...
-          </h1>
+      <div className={`flex-1 px-8 py-6 pb-8 flex flex-col gap-8 lg:gap-16 max-w-7xl mx-auto w-full ${!isPhoneReq ? 'items-center justify-center' : 'lg:flex-row'}`}>
+        {/* Left Column: Input (Phone Number conditionally displayed) */}
+        {isPhoneReq && (
+          <div className="flex-1 flex flex-col">
+            <h1 className="text-4xl font-bold mb-8">
+              Just a few more details...
+            </h1>
 
-          <div className="mb-8">
-            <label className="flex items-center gap-2 text-gray-400 text-lg font-bold mb-3">
-              <span>📱</span> Phone Number
-            </label>
-            <div className="bg-gray-800/50 border border-blue-500/30 rounded-lg p-6 h-20 flex items-center shadow-inner">
-              <span className="text-3xl font-mono tracking-widest text-white">
-                {displayPhone}
-                <span className="animate-pulse text-blue-500">|</span>
-              </span>
+            <div className="mb-8">
+              <label className="flex items-center gap-2 text-gray-400 text-lg font-bold mb-3">
+                <span>📱</span> Phone Number
+              </label>
+              <div className="bg-gray-800/50 border border-blue-500/30 rounded-lg p-6 h-20 flex items-center shadow-inner">
+                <span className="text-3xl font-mono tracking-widest text-white">
+                  {displayPhone}
+                  <span className="animate-pulse text-blue-500">|</span>
+                </span>
+              </div>
             </div>
-          </div>
 
-          {/* Numpad */}
-          <div className="grid grid-cols-3 gap-4 max-w-md mx-auto lg:mx-0 w-full">
-            {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
+            {/* Numpad */}
+            <div className="grid grid-cols-3 gap-4 max-w-md mx-auto lg:mx-0 w-full">
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
+                <button
+                  key={num}
+                  onClick={() => handleNumpad(num.toString())}
+                  className="h-20 bg-gray-800 border border-gray-700 rounded-xl text-3xl font-bold text-white hover:bg-gray-700 hover:border-gray-600 active:scale-95 transition-all shadow-lg"
+                >
+                  {num}
+                </button>
+              ))}
               <button
-                key={num}
-                onClick={() => handleNumpad(num.toString())}
+                onClick={handleClear}
+                className="h-20 bg-gray-800/50 border border-red-900/30 text-red-400 rounded-xl text-xl font-bold hover:bg-red-900/20 hover:border-red-900/50 active:scale-95 transition-all shadow-lg"
+              >
+                Clear
+              </button>
+              <button
+                onClick={() => handleNumpad("0")}
                 className="h-20 bg-gray-800 border border-gray-700 rounded-xl text-3xl font-bold text-white hover:bg-gray-700 hover:border-gray-600 active:scale-95 transition-all shadow-lg"
               >
-                {num}
+                0
               </button>
-            ))}
-            <button
-              onClick={handleClear}
-              className="h-20 bg-gray-800/50 border border-red-900/30 text-red-400 rounded-xl text-xl font-bold hover:bg-red-900/20 hover:border-red-900/50 active:scale-95 transition-all shadow-lg"
-            >
-              Clear
-            </button>
-            <button
-              onClick={() => handleNumpad("0")}
-              className="h-20 bg-gray-800 border border-gray-700 rounded-xl text-3xl font-bold text-white hover:bg-gray-700 hover:border-gray-600 active:scale-95 transition-all shadow-lg"
-            >
-              0
-            </button>
-            <button
-              onClick={handleBackspace}
-              className="h-20 bg-gray-800/50 border border-gray-700 rounded-xl flex items-center justify-center hover:bg-gray-700 active:scale-95 transition-all shadow-lg"
-            >
-              <span className="text-2xl">⌫</span>
-            </button>
+              <button
+                onClick={handleBackspace}
+                className="h-20 bg-gray-800/50 border border-gray-700 rounded-xl flex items-center justify-center hover:bg-gray-700 active:scale-95 transition-all shadow-lg"
+              >
+                <span className="text-2xl">⌫</span>
+              </button>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Right Column: Action */}
-        <div className="w-full lg:w-[450px] flex flex-col">
+        <div className={`w-full flex flex-col ${!isPhoneReq ? 'max-w-md' : 'lg:w-[450px]'}`}>
           <div className="bg-gray-800 rounded-3xl p-8 border border-gray-700 shadow-2xl">
             <h3 className="text-2xl font-bold text-white mb-2">
               {categoryName}
@@ -330,28 +338,30 @@ export const OIssueTicket: React.FC<IIssueTicketProps> = ({
                 minute: "2-digit",
               })}
             </p>
-            <div className="bg-gray-900/50 rounded-xl p-4 flex items-center justify-between border border-gray-700">
-              <span className="text-sm font-bold text-gray-400 uppercase">
-                Guests
-              </span>
-              <div className="flex items-center gap-4">
-                <button
-                  onClick={() => setPax(Math.max(1, pax - 1))}
-                  className="w-8 h-8 rounded-lg bg-gray-700 hover:bg-gray-600 text-white font-bold"
-                >
-                  -
-                </button>
-                <span className="text-xl font-bold text-white w-6 text-center">
-                  {pax}
+            {isGuestReq && (
+              <div className="bg-gray-900/50 rounded-xl p-4 flex items-center justify-between border border-gray-700">
+                <span className="text-sm font-bold text-gray-400 uppercase">
+                  Guests
                 </span>
-                <button
-                  onClick={() => setPax(Math.min(20, pax + 1))}
-                  className="w-8 h-8 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold shadow-lg shadow-blue-900/20"
-                >
-                  +
-                </button>
+                <div className="flex items-center gap-4">
+                  <button
+                    onClick={() => setPax(Math.max(1, pax - 1))}
+                    className="w-8 h-8 rounded-lg bg-gray-700 hover:bg-gray-600 text-white font-bold"
+                  >
+                    -
+                  </button>
+                  <span className="text-xl font-bold text-white w-6 text-center">
+                    {pax}
+                  </span>
+                  <button
+                    onClick={() => setPax(Math.min(20, pax + 1))}
+                    className="w-8 h-8 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold shadow-lg shadow-blue-900/20"
+                  >
+                    +
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* Action Button */}

@@ -109,8 +109,12 @@ const ODisplayBoard: React.FC = () => {
 
             // ถ้าไม่มี queueType แต่มี kitchenCode ให้หาว่า servicePoint ไหนมี kitchenCode นี้
             if (!finalServiceGroup && embedded.kitchenCode) {
+              const queueKitchenCodes = Array.isArray(embedded.kitchenCode)
+                ? embedded.kitchenCode
+                : [embedded.kitchenCode];
+
               const matchedServicePoint = servicePoints.find(
-                (sp: IServicePoint) => sp.kitchenCode === embedded.kitchenCode
+                (sp: IServicePoint) => sp.kitchenCode && queueKitchenCodes.includes(sp.kitchenCode)
               );
 
               if (matchedServicePoint && matchedServicePoint.serviceGroups && matchedServicePoint.serviceGroups.length > 0) {
@@ -159,7 +163,8 @@ const ODisplayBoard: React.FC = () => {
             // But the prompt said it might be removed, so relying on serviceGroup mapping is better.
             mapped = mapped.filter((q: any) => {
               if (q.kitchenCode && selectedBoard.kitchenCode) {
-                return q.kitchenCode === selectedBoard.kitchenCode;
+                const queueKitchenCodes = Array.isArray(q.kitchenCode) ? q.kitchenCode : [q.kitchenCode];
+                return queueKitchenCodes.includes(selectedBoard.kitchenCode);
               }
               return true;
             });
