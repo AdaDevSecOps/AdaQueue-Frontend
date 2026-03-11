@@ -32,6 +32,8 @@ interface IServiceGroup {
     priority?: 'Urgent' | 'High' | 'Standard' | 'Low';
     channelCode?: string;
     prefix?: string;
+    maxQueueNumber?: number;
+    resetCondition?: 'EOD' | '7DAYS';
     isPhoneRequired?: boolean;
     isGuestCountRequired?: boolean;
     initialState: string;
@@ -561,6 +563,8 @@ const OWorkflowDesigner: React.FC = () => {
             name: 'New Queue Type',
             description: 'Description of the new queue workflow',
             priority: 'Standard',
+            maxQueueNumber: 999,
+            resetCondition: 'EOD',
             initialState: 'WAIT',
             states: {
                 'WAIT': { code: 'WAIT', label: 'Waiting', type: 'INITIAL', color: '#3B82F6', transitions: [] }
@@ -1570,7 +1574,7 @@ const OWorkflowDesigner: React.FC = () => {
                                             className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 focus:ring-offset-gray-900 bg-white dark:bg-gray-800"
                                         />
                                         <div>
-                                            <span className="text-sm font-bold text-gray-700 dark:text-gray-300">ขอเบอร์โทรศัพท์ (Kiosk)</span>
+                                            <span className="text-sm font-bold text-gray-700 dark:text-gray-300">กรอกเบอร์โทรศัพท์ (Kiosk)</span>
                                             <p className="text-xs text-gray-400 mt-1">ให้ลูกค้ากรอกเบอร์โทรฯ ในหน้า Kiosk</p>
                                         </div>
                                     </label>
@@ -1582,7 +1586,7 @@ const OWorkflowDesigner: React.FC = () => {
                                             className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 focus:ring-offset-gray-900 bg-white dark:bg-gray-800"
                                         />
                                         <div>
-                                            <span className="text-sm font-bold text-gray-700 dark:text-gray-300">ขอจำนวนคน (Kiosk)</span>
+                                            <span className="text-sm font-bold text-gray-700 dark:text-gray-300">กรอกจำนวนคน (Kiosk)</span>
                                             <p className="text-xs text-gray-400 mt-1">ให้ลูกค้าระบุจำนวนคนในหน้า Kiosk</p>
                                         </div>
                                     </label>
@@ -1630,6 +1634,27 @@ const OWorkflowDesigner: React.FC = () => {
                                             placeholder="e.g. A, B, X"
                                             maxLength={2}
                                         />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Max Queue Number (เลขสูงสุดของคิว)</label>
+                                        <input
+                                            type="number"
+                                            value={group.maxQueueNumber || ''}
+                                            onChange={(e) => updateGroup({ maxQueueNumber: e.target.value ? parseInt(e.target.value, 10) : undefined })}
+                                            className="w-full p-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                            placeholder="e.g. 999"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Reset Condition (เงื่อนไขการ Reset)</label>
+                                        <select
+                                            value={group.resetCondition || 'EOD'}
+                                            onChange={(e) => updateGroup({ resetCondition: e.target.value as any })}
+                                            className="w-full p-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg"
+                                        >
+                                            <option value="EOD">สิ้นวัน (End of Day)</option>
+                                            <option value="7DAYS">ทุก 7 วัน (Every 7 Days)</option>
+                                        </select>
                                     </div>
                                 </div>
                             </div>

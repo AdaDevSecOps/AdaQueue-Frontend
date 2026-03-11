@@ -35,6 +35,7 @@ interface IServicePoint {
   description?: string;
   focusStates: string[];
   serviceGroups?: string[];
+  kitchenCode?: string;
 }
 
 interface IWorkflowDefinition {
@@ -72,7 +73,7 @@ const OStaffOperations: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [queueList, setQueueList] = useState<any[]>([]); // Real Data
-  const [upcomingTab, setUpcomingTab] = useState<'waiting' | 'inprogress'>('waiting');
+  const [upcomingTab, setUpcomingTab] = useState<'waiting' | 'inprogress' | 'finished'>('waiting');
 
   // Startup State
   const [startupStep, setStartupStep] = useState<'init' | 'select_profile' | 'select_point' | 'ready'>('init');
@@ -283,7 +284,38 @@ const OStaffOperations: React.FC = () => {
         console.log('📦 RESPONSE DATA:', data);
         const mapped = data.map((q: any) => {
           const qData = q.data || (q.dataString ? JSON.parse(q.dataString) : {});
-          const groupCode = qData.serviceGroup || qData.queueType || 'General';
+
+          let groupCode = qData.serviceGroup || qData.queueType;
+
+          // === Kitchen Code Logic (Via ServicePoints) ===
+          if (!groupCode && qData.kitchenCode) {
+            const queueKitchenCodes = Array.isArray(qData.kitchenCode)
+              ? qData.kitchenCode
+              : [qData.kitchenCode];
+
+            // Find service point matching kitchen code
+            const matchedServicePoint = workflow?.servicePoints?.find(
+              (sp: IServicePoint) => sp.kitchenCode && queueKitchenCodes.includes(sp.kitchenCode)
+            );
+
+            // If matching service point found, use its assigned serviceGroups
+            // If currently at a selected point, check if we can serve it
+            if (matchedServicePoint && matchedServicePoint.serviceGroups && matchedServicePoint.serviceGroups.length > 0) {
+              groupCode = matchedServicePoint.serviceGroups[0]; // defaults to first available
+
+              // Optional: If you want staff to only see kitchen queues when logged into that specific point:
+              if (selectedPointCode === matchedServicePoint.code) {
+                const allowedGroups = workflow?.servicePoints?.find(p => p.code === selectedPointCode)?.serviceGroups || [];
+                const validGroup = matchedServicePoint.serviceGroups.find(sg => allowedGroups.includes(sg));
+                if (validGroup) groupCode = validGroup;
+              }
+            }
+          }
+
+          if (!groupCode) {
+            groupCode = 'General';
+          }
+
           const groupName = workflow?.serviceGroups?.find(g => g.code === groupCode)?.name || groupCode || 'General';
           const checkIn = new Date(q.date || q.checkInTime || Date.now()).getTime();
           const dateExpire = new Date(q.checkInTime).getTime();
@@ -385,11 +417,7 @@ const OStaffOperations: React.FC = () => {
       console.log('📦 EVENT DATA:', evt);
       console.groupEnd();
 
-      const q = evt?.queue;
-      const pid = q?.data?.profileId || q?.profileCode;
-      if (pid && pid === selectedProfile.code) {
-        fetchQueues();
-      }
+      fetchQueues();
     };
 
     socket.on('queue:update', handler);
@@ -402,14 +430,55 @@ const OStaffOperations: React.FC = () => {
 
   // Handle Call Next Queue
   const handleCallNext = async () => {
-    // Block only when no specific queue is selected AND there's already a current queue
-    if (currentQueue && !selectedQueueDocNo) {
+    // Determine condition for auto-finish vs blocking
+    const isAutoFinishEligible = () => {
+      if (!currentQueue || !workflow) return false;
+      const groupDef = workflow.serviceGroups.find(g => g.code === currentQueue.group);
+      const statesMap = groupDef?.states as Record<string, IStateDefinition> | undefined;
+      if (!statesMap) return false;
+      const statesCount = Object.keys(statesMap).length;
+      return statesCount === 2; // Assuming 1 INITIAL and 1 FINAL
+    };
+
+    // Block only when no specific queue is selected AND there's already a current queue, UNLESS eligible for auto-finish
+    if (currentQueue && !selectedQueueDocNo && !isAutoFinishEligible()) {
       console.warn('⚠️ ไม่สามารถเรียกคิวถัดไปได้: มีคิวค้างอยู่ใน Now Calling');
       return;
     }
     if (!selectedProfile?.code) {
       console.warn('⚠️ ไม่สามารถเรียกคิวได้: ไม่มี Profile');
       return;
+    }
+
+    // Auto-finish the current queue if eligible and we are doing a standard call next
+    let completedCurrentQueue = false;
+    if (currentQueue && !selectedQueueDocNo && isAutoFinishEligible()) {
+      console.groupCollapsed(`🟠 POST /api/staff/queue/finish (AUTO-FINISH)`);
+      try {
+        const finishUrl = apiPath('/api/staff/queue/finish');
+        const res = await fetch(finishUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ docNo: currentQueue.docNo })
+        });
+        if (res.ok) {
+          console.log('✅ SUCCESS: Auto-finished current queue');
+          completedCurrentQueue = true;
+          if (currentQueueStorageKey) {
+            try { localStorage.removeItem(currentQueueStorageKey); } catch { }
+          }
+          setCurrentQueue(null);
+        } else {
+          console.error('❌ FAILED to auto-finish queue');
+          console.groupEnd();
+          return; // Stop execution if auto-finish fails
+        }
+      } catch (e) {
+        console.error('❌ ERROR during auto-finish:', e);
+        console.groupEnd();
+        return;
+      }
+      console.groupEnd();
     }
 
     const url = apiPath('/api/staff/console/call-next');
@@ -910,6 +979,20 @@ const OStaffOperations: React.FC = () => {
     return codes;
   })();
 
+  const finalStateCodes = (() => {
+    const codes = new Set<string>(['FINISH', 'COMPLETED', 'DONE']);
+    if (!workflow) return codes;
+    workflow.serviceGroups.forEach(g => {
+      const statesMap = g.states as Record<string, IStateDefinition> | undefined;
+      if (statesMap) {
+        Object.values(statesMap).forEach(s => {
+          if (s.type === 'FINAL') codes.add(s.code);
+        });
+      }
+    });
+    return codes;
+  })();
+
   // Helper: apply service group + service point filters (shared by both tabs)
   const applyBaseFilters = (list: any[]) => {
     let result = list;
@@ -949,8 +1032,16 @@ const OStaffOperations: React.FC = () => {
     return result;
   })();
 
+  const finishedQueues = (() => {
+    let result = queueList.filter(q => finalStateCodes.has(q.state));
+    result = applyBaseFilters(result);
+    // Sort descending by created for finished queues (latest first)
+    result = result.sort((a, b) => b.created - a.created);
+    return result;
+  })();
+
   // Active list for the current tab
-  const activeQueueList = upcomingTab === 'waiting' ? filteredQueues : inProgressQueues;
+  const activeQueueList = upcomingTab === 'waiting' ? filteredQueues : upcomingTab === 'inprogress' ? inProgressQueues : finishedQueues;
 
   const waitingCount = filteredQueues.filter(q => q.state === 'WAITING' || q.state === '').length;
   const nearSlaCount = filteredQueues.filter(q => {
@@ -1024,6 +1115,7 @@ const OStaffOperations: React.FC = () => {
             {/* Service Point Selector */}
             <div className="relative">
               <select
+                disabled
                 value={selectedPointCode}
                 onChange={(e) => {
                   const newPoint = e.target.value;
@@ -1037,7 +1129,7 @@ const OStaffOperations: React.FC = () => {
                     }
                   }
                 }}
-                className="appearance-none bg-emerald-50 dark:bg-gray-800 border-emerald-200 dark:border-gray-600 border rounded-lg py-2 pl-4 pr-10 text-sm font-bold text-emerald-700 dark:text-white focus:ring-2 focus:ring-emerald-500 dark:focus:ring-emerald-400 min-w-[180px]"
+                className="appearance-none bg-emerald-50 dark:bg-gray-800 border-emerald-200 dark:border-gray-600 border rounded-lg py-2 pl-4 pr-10 text-sm font-bold text-emerald-700 dark:text-white focus:ring-2 focus:ring-emerald-500 dark:focus:ring-emerald-400 min-w-[180px] cursor-not-allowed opacity-75"
               >
                 {workflow?.servicePoints?.map(point => (
                   <option key={point.code} value={point.code} className="dark:bg-gray-800 dark:text-white">{point.name}</option>
@@ -1102,28 +1194,41 @@ const OStaffOperations: React.FC = () => {
               <button
                 onClick={() => setUpcomingTab('waiting')}
                 className={`px-4 py-2 text-sm font-bold rounded-t-lg transition-colors relative ${upcomingTab === 'waiting'
-                    ? 'text-blue-600 dark:text-blue-400 bg-white dark:bg-gray-800 border-t border-l border-r border-gray-200 dark:border-gray-700 -mb-px z-10'
-                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                  ? 'text-blue-600 dark:text-blue-400 bg-white dark:bg-gray-800 border-t border-l border-r border-gray-200 dark:border-gray-700 -mb-px z-10'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
                   }`}
               >
                 Waiting
                 <span className={`ml-2 px-1.5 py-0.5 text-xs rounded-full ${upcomingTab === 'waiting'
-                    ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400'
-                    : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
+                  ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400'
+                  : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
                   }`}>{filteredQueues.length}</span>
               </button>
               <button
                 onClick={() => setUpcomingTab('inprogress')}
                 className={`px-4 py-2 text-sm font-bold rounded-t-lg transition-colors relative ${upcomingTab === 'inprogress'
-                    ? 'text-amber-600 dark:text-amber-400 bg-white dark:bg-gray-800 border-t border-l border-r border-gray-200 dark:border-gray-700 -mb-px z-10'
-                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                  ? 'text-amber-600 dark:text-amber-400 bg-white dark:bg-gray-800 border-t border-l border-r border-gray-200 dark:border-gray-700 -mb-px z-10'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
                   }`}
               >
                 In Progress
                 <span className={`ml-2 px-1.5 py-0.5 text-xs rounded-full ${upcomingTab === 'inprogress'
-                    ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400'
-                    : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
+                  ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400'
+                  : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
                   }`}>{inProgressQueues.length}</span>
+              </button>
+              <button
+                onClick={() => setUpcomingTab('finished')}
+                className={`px-4 py-2 text-sm font-bold rounded-t-lg transition-colors relative ${upcomingTab === 'finished'
+                  ? 'text-green-600 dark:text-green-400 bg-white dark:bg-gray-800 border-t border-l border-r border-gray-200 dark:border-gray-700 -mb-px z-10'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                  }`}
+              >
+                Finished
+                <span className={`ml-2 px-1.5 py-0.5 text-xs rounded-full ${upcomingTab === 'finished'
+                  ? 'bg-green-100 dark:bg-green-900/40 text-green-600 dark:text-green-400'
+                  : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
+                  }`}>{finishedQueues.length}</span>
               </button>
             </div>
           </div>
@@ -1142,7 +1247,7 @@ const OStaffOperations: React.FC = () => {
                 {activeQueueList.length === 0 && (
                   <tr>
                     <td colSpan={4} className="px-4 py-10 text-center text-sm text-gray-400 dark:text-gray-600">
-                      {upcomingTab === 'waiting' ? 'ไม่มีคิวรอดำเนินการ' : 'ไม่มีคิวที่กำลังดำเนินการ'}
+                      {upcomingTab === 'waiting' ? 'ไม่มีคิวรอดำเนินการ' : upcomingTab === 'inprogress' ? 'ไม่มีคิวที่กำลังดำเนินการ' : 'ไม่มีคิวที่สำเร็จแล้ว'}
                     </td>
                   </tr>
                 )}
@@ -1175,8 +1280,8 @@ const OStaffOperations: React.FC = () => {
                         }
                       }}
                       className={`transition-all cursor-pointer ${isSelected
-                          ? 'bg-blue-100 dark:bg-blue-900/30 ring-2 ring-blue-500 dark:ring-blue-400'
-                          : 'hover:bg-blue-50 dark:hover:bg-blue-900/10'
+                        ? 'bg-blue-100 dark:bg-blue-900/30 ring-2 ring-blue-500 dark:ring-blue-400'
+                        : 'hover:bg-blue-50 dark:hover:bg-blue-900/10'
                         } group`}
                     >
                       <td className="px-4 py-4 font-bold text-gray-900 dark:text-white relative">
@@ -1254,42 +1359,58 @@ const OStaffOperations: React.FC = () => {
 
           {/* Action Buttons Grid */}
           <div className="grid grid-cols-2 gap-4">
-            <button
-              onClick={handleCallNext}
-              disabled={!!currentQueue && !(selectedQueueDocNo && upcomingTab === 'waiting')}
-              title={currentQueue && !selectedQueueDocNo ? 'มีคิวค้างอยู่ใน Now Calling กรุณาสิ้นสุดก่อน' : undefined}
-              className={`h-32 rounded-2xl text-white shadow-lg flex flex-col items-center justify-center gap-2 transition-all active:scale-95 ${(currentQueue && !(selectedQueueDocNo && upcomingTab === 'waiting'))
-                  ? 'bg-gray-400 cursor-not-allowed opacity-60'
-                  : (selectedQueueDocNo && upcomingTab === 'waiting'
-                    ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 shadow-purple-600/20'
-                    : 'bg-blue-600 hover:bg-blue-700 shadow-blue-600/20')
-                }`}
-            >
-              {selectedQueueDocNo && upcomingTab === 'waiting' ? (
-                <>
-                  <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
-                  </svg>
-                  <span className="text-lg font-bold">CALL SELECTED</span>
-                  <span className="text-xs opacity-80">(ข้ามคิว)</span>
-                </>
-              ) : (
-                <>
-                  <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"></path>
-                  </svg>
-                  <span className="text-lg font-bold">CALL NEXT</span>
-                </>
-              )}
-            </button>
+            {(() => {
+              const isAutoFinishEligible = () => {
+                if (!currentQueue || !workflow) return false;
+                const groupDef = workflow.serviceGroups.find(g => g.code === currentQueue.group);
+                const statesMap = groupDef?.states as Record<string, IStateDefinition> | undefined;
+                if (!statesMap) return false;
+                const statesCount = Object.keys(statesMap).length;
+                return statesCount === 2;
+              };
+
+              const callNextDisabled = !!currentQueue && !(selectedQueueDocNo && upcomingTab === 'waiting') && !isAutoFinishEligible();
+              const callNextTitle = callNextDisabled ? 'มีคิวค้างอยู่ใน Now Calling กรุณาสิ้นสุดก่อน' : undefined;
+
+              return (
+                <button
+                  onClick={handleCallNext}
+                  disabled={callNextDisabled}
+                  title={callNextTitle}
+                  className={`h-32 rounded-2xl text-white shadow-lg flex flex-col items-center justify-center gap-2 transition-all active:scale-95 ${callNextDisabled
+                    ? 'bg-gray-400 cursor-not-allowed opacity-60'
+                    : (selectedQueueDocNo && upcomingTab === 'waiting'
+                      ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 shadow-purple-600/20'
+                      : 'bg-blue-600 hover:bg-blue-700 shadow-blue-600/20')
+                    }`}
+                >
+                  {selectedQueueDocNo && upcomingTab === 'waiting' ? (
+                    <>
+                      <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+                      </svg>
+                      <span className="text-lg font-bold">CALL SELECTED</span>
+                      <span className="text-xs opacity-80">(ข้ามคิว)</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"></path>
+                      </svg>
+                      <span className="text-lg font-bold">CALL NEXT</span>
+                    </>
+                  )}
+                </button>
+              );
+            })()}
 
             <button
               onClick={handleStartProcess}
               disabled={!currentQueue}
               title={!currentQueue ? 'ยังไม่มีคิวใน Now Calling' : undefined}
               className={`h-32 rounded-2xl text-white shadow-lg flex flex-col items-center justify-center gap-2 transition-transform active:scale-95 ${!currentQueue
-                  ? 'bg-gray-400 cursor-not-allowed opacity-60'
-                  : 'bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/20'
+                ? 'bg-gray-400 cursor-not-allowed opacity-60'
+                : 'bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/20'
                 }`}>
               <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
               <span className="text-lg font-bold">
@@ -1302,8 +1423,8 @@ const OStaffOperations: React.FC = () => {
               disabled={!currentQueue}
               title={!currentQueue ? 'ไม่มีคิวที่กำลังเรียก' : undefined}
               className={`h-24 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-amber-600 dark:text-amber-500 flex flex-col items-center justify-center gap-1 transition ${!currentQueue
-                  ? 'opacity-40 cursor-not-allowed'
-                  : 'hover:bg-amber-50 dark:hover:bg-amber-900/10'
+                ? 'opacity-40 cursor-not-allowed'
+                : 'hover:bg-amber-50 dark:hover:bg-amber-900/10'
                 }`}
             >
               <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11.933 12.8a1 1 0 000-1.6L6.6 7.2A1 1 0 005 8v8a1 1 0 001.6.8l5.333-4zM19.933 12.8a1 1 0 000-1.6l-5.333-4A1 1 0 0013 8v8a1 1 0 001.6.8l5.333-4z"></path></svg>
@@ -1323,10 +1444,10 @@ const OStaffOperations: React.FC = () => {
                   disabled={isDisabled}
                   title={isDisabled ? 'ไม่มีคิวให้ยกเลิก' : (isSelected ? `ยกเลิกคิว ${targetTicket}` : 'ยกเลิกคิวที่รอนานที่สุด')}
                   className={`h-24 rounded-xl flex flex-col items-center justify-center gap-1 transition ${isDisabled
-                      ? 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-red-600 dark:text-red-500 opacity-40 cursor-not-allowed'
-                      : isSelected
-                        ? 'bg-red-50 dark:bg-red-900/20 border-2 border-red-500 dark:border-red-500 text-red-600 dark:text-red-400 ring-2 ring-red-400/30 hover:bg-red-100 dark:hover:bg-red-900/30'
-                        : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-red-600 dark:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10'
+                    ? 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-red-600 dark:text-red-500 opacity-40 cursor-not-allowed'
+                    : isSelected
+                      ? 'bg-red-50 dark:bg-red-900/20 border-2 border-red-500 dark:border-red-500 text-red-600 dark:text-red-400 ring-2 ring-red-400/30 hover:bg-red-100 dark:hover:bg-red-900/30'
+                      : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-red-600 dark:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10'
                     }`}
                 >
                   <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
