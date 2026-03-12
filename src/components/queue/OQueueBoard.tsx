@@ -141,7 +141,7 @@ const OQueueBoard: React.FC<IOQueueBoardProps> = ({ queues, title, leftTitle, di
               {/* Fixed Top Queue (First Queue) */}
               {displayQueues.length > 0 && (
                 <div key={displayQueues[0].docNo + "_top"} className={`flex justify-between items-center p-3 md:p-4 bg-white dark:bg-gray-800 rounded-lg shadow-md z-10 shrink-0 mb-1.5 ${displayQueues[0].status.startsWith('WAIT') ? 'border-2 border-blue-500 dark:border-blue-400' : 'border border-gray-200 dark:border-gray-700'}`}>
-                  <span className={`text-xl md:text-3xl font-extrabold tracking-wider ${displayQueues[0].status.startsWith('WAIT') ? 'text-blue-700 dark:text-blue-300' : 'text-gray-800 dark:text-gray-100'}`}>
+                  <span className={`${displayQueues[0].status.startsWith('WAIT') ? 'text-xl md:text-3xl font-extrabold text-blue-700 dark:text-blue-300' : 'text-lg md:text-2xl font-bold text-gray-800 dark:text-gray-100'} tracking-wider`}>
                     {displayQueues[0].ticketNo || displayQueues[0].queueNo}
                   </span>
                   {displayQueues[0].status.startsWith('WAIT') && (
