@@ -1,16 +1,18 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import axios from 'axios';
+import { API_CONFIG } from '../config/api';
 
 // Mock Token Types
 interface User {
   username: string;
-  role: 'ADMIN' | 'STAFF' | 'KIOSK';
+  role: 'ADMIN' | 'STAFF' | 'KIOSK' | 'CHEF';
   name: string;
 }
 
 interface AuthContextType {
   user: User | null;
   token: string | null;
-  login: (pin: string) => Promise<User | null>;
+  login: (username: string, pin: string) => Promise<User | null>;
   logout: () => void;
   isLoading: boolean;
 }
@@ -34,30 +36,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(false);
   }, []);
 
-  const login = async (pin: string): Promise<User | null> => {
-    // Simulate API Call
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        if (pin === '1234') {
-          const mockUser: User = { username: 'admin', role: 'ADMIN', name: 'System Admin' };
-          const mockToken = 'mock-jwt-token-admin';
-          saveSession(mockUser, mockToken);
-          resolve(mockUser);
-        } else if (pin === '0000') {
-            const mockUser: User = { username: 'staff', role: 'STAFF', name: 'Service Staff' };
-            const mockToken = 'mock-jwt-token-staff';
-            saveSession(mockUser, mockToken);
-            resolve(mockUser);
-        } else if (pin === '9999') {
-             const mockUser: User = { username: 'kiosk', role: 'KIOSK', name: 'Kiosk Terminal' };
-             const mockToken = 'mock-jwt-token-kiosk';
-             saveSession(mockUser, mockToken);
-             resolve(mockUser);
-        } else {
-          resolve(null);
-        }
-      }, 800);
-    });
+  const login = async (username: string, pin: string): Promise<User | null> => {
+    try {
+      const response = await axios.post(`${API_CONFIG.BASE}/api/auth/login`, {
+        username: username,
+        password: pin,
+      });
+
+      if (response.data && response.data.access_token) {
+        const { user: userData, access_token } = response.data;
+        saveSession(userData, access_token);
+        return userData;
+      }
+      return null;
+    } catch (error) {
+      console.error('Login error:', error);
+      return null;
+    }
   };
 
   const saveSession = (user: User, token: string) => {
