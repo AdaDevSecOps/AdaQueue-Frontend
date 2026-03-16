@@ -38,6 +38,14 @@ const MainLayout: React.FC = () => {
       )
     },
     {
+      label: t('menu.accountManagement'),
+      path: '/admin/account-management',
+      roles: ['ADMIN'],
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+      )
+    },
+    {
       label: t('menu.workflowDesigner'),
       path: '/admin/workflow',
       roles: ['ADMIN'],
@@ -61,20 +69,22 @@ const MainLayout: React.FC = () => {
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"></path></svg>
       )
     },
-    { 
-      label: t('menu.displayBoard'), 
-      path: '/board', 
+    {
+      label: t('menu.displayBoard'),
+      path: '/board',
       roles: ['ADMIN', 'STAFF', 'KIOSK'],
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
-    )},
-    { 
-      label: t('menu.kioskMode'), 
-      path: '/kiosk', 
+      )
+    },
+    {
+      label: t('menu.kioskMode'),
+      path: '/kiosk',
       roles: ['ADMIN', 'KIOSK'],
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
-    )},
+      )
+    },
   ];
 
   const filteredMenu = menuItems.filter(item =>
@@ -125,8 +135,8 @@ const MainLayout: React.FC = () => {
               key={item.path}
               to={item.path}
               className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all ${isActive(item.path)
-                  ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 shadow-sm font-medium'
-                  : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-800 dark:hover:text-gray-200'
+                ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 shadow-sm font-medium'
+                : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-800 dark:hover:text-gray-200'
                 } ${!isSidebarOpen && 'justify-center'}`}
               title={!isSidebarOpen ? item.label : ''}
             >

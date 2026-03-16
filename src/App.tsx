@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, useNavigate, Navigate, Outlet, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
+import { Toaster } from 'react-hot-toast';
 
 // Pages
 import OLogin from './pages/auth/OLogin';
@@ -12,12 +13,12 @@ import OMobileTracking from './pages/customer/OMobileTracking';
 import ODashboard from './pages/admin/ODashboard';
 import OStaffPerformanceReport from './pages/admin/OStaffPerformanceReport';
 import OWorkflowDesigner from './pages/admin/OWorkflowDesigner';
+import OAccountManagement from './pages/admin/OAccountManagement';
 import StaffControlPage from './pages/staff/StaffControlPage';
 import OStaffOperations from './pages/staff/OStaffOperations';
 import OBulkQueueManagement from './pages/staff/OBulkQueueManagement';
 import ODisplayBoard from './pages/board/ODisplayBoard';
 import './i18n';
-import { apiPath } from './config/api';
 import OTicketIssued from './pages/kiosk/OTicketIssued';
 
 // Layouts
@@ -75,6 +76,7 @@ const App: React.FC = () => {
       <AuthProvider>
         <Router>
           <div className="min-h-screen bg-gray-50 dark:bg-gray-900 font-sans text-gray-900 dark:text-white transition-colors duration-200">
+            <Toaster position="top-right" />
             <Routes>
               {/* Public Routes */}
               <Route path="/" element={<OLogin />} />
@@ -99,6 +101,7 @@ const App: React.FC = () => {
                 <Route element={<MainLayout />}>
                   <Route path="/admin/dashboard" element={<ODashboard />} />
                   <Route path="/admin/reports" element={<OStaffPerformanceReport />} />
+                  <Route path="/admin/account-management" element={<OAccountManagement />} />
                   <Route path="/admin/workflow" element={<OWorkflowDesigner />} />
                   <Route path="/staff/control" element={<StaffControlPage />} />
                   <Route path="/staff/operations" element={<OStaffOperations />} />
