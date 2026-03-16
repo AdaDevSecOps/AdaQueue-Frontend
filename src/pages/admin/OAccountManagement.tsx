@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 import { apiPath } from '../../config/api';
 import OUserModal from '../../components/admin/OUserModal';
+import OUserProfileModal from '../../components/admin/OUserProfileModal';
 
 interface User {
   code: string;
@@ -22,6 +23,7 @@ const OAccountManagement: React.FC = () => {
   const [roleFilter, setRoleFilter] = useState('ALL');
   const [statusFilter, setStatusFilter] = useState('0'); // Default to Active
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | undefined>();
 
   const fetchUsers = async () => {
@@ -99,7 +101,7 @@ const OAccountManagement: React.FC = () => {
               setSelectedUser(undefined);
               setIsModalOpen(true);
             }}
-            className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-lg shadow-blue-600/20 font-bold transition-all flex items-center gap-2"
+            className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-lg shadow-blue-600/20 font-bold transition-all flex items-center gap-2"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg>
             {t('common.add')}
@@ -175,8 +177,8 @@ const OAccountManagement: React.FC = () => {
                       <td className="px-6 py-4 text-gray-700 dark:text-gray-300 font-medium">{u.name || '-'}</td>
                       <td className="px-6 py-4">
                         <span className={`px-2 py-1 rounded-lg text-xs font-bold ${u.role === 'ADMIN' ? 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400' :
-                            u.role === 'STAFF' ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' :
-                              'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400'
+                          u.role === 'STAFF' ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' :
+                            'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400'
                           }`}>
                           {t(`common.${u.role.toLowerCase()}`)}
                         </span>
@@ -186,12 +188,22 @@ const OAccountManagement: React.FC = () => {
                       </td>
                       <td className="px-6 py-4">
                         <span className={`px-2 py-1 rounded-lg text-xs font-bold ${u.status === '0' ? 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400' :
-                            'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400'
+                          'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400'
                           }`}>
                           {u.status === '0' ? t('common.active') : t('common.deleted')}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-right space-x-2">
+                        <button
+                          onClick={() => {
+                            setSelectedUser(u);
+                            setIsProfileModalOpen(true);
+                          }}
+                          className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/30 rounded-lg transition-all"
+                          title={t('menu.manageProfiles') || 'Manage Profiles'}
+                        >
+                          <span role="img" aria-label="profiles" className="text-lg">🏷️</span>
+                        </button>
                         <button
                           onClick={() => {
                             setSelectedUser(u);
@@ -226,6 +238,12 @@ const OAccountManagement: React.FC = () => {
         onClose={() => setIsModalOpen(false)}
         onSave={selectedUser ? handleUpdate : handleCreate}
         user={selectedUser}
+      />
+
+      <OUserProfileModal
+        isOpen={isProfileModalOpen}
+        onClose={() => setIsProfileModalOpen(false)}
+        userCode={selectedUser?.code}
       />
     </div>
   );

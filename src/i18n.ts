@@ -14,7 +14,8 @@ const resources = {
         staffOperations: 'งานเจ้าหน้าที่',
         bulkManagement: 'จัดการแบบกลุ่ม',
         displayBoard: 'จอแสดงผล',
-        kioskMode: 'โหมดคีออส'
+        kioskMode: 'โหมดคีออส',
+        manageProfiles: 'ผูกโปรไฟล์'
       },
       theme: {
         dark: 'โหมดมืด',
@@ -45,14 +46,16 @@ const resources = {
         userCode: 'รหัสพนักงาน',
         userName: 'ชื่อพนักงาน',
         success: 'ความสำเร็จ',
-        error: 'เกิดข้อผิดพลาด'
+        error: 'เกิดข้อผิดพลาด',
+        assignProfile: 'ผูกโปรไฟล์'
       },
       messages: {
         createSuccess: 'สร้างบัญชีผู้ใช้สำเร็จ',
         updateSuccess: 'อัปเดตข้อมูลสำเร็จ',
         deleteSuccess: 'ลบบัญชีผู้ใช้สำเร็จ',
         userCodeExists: 'รหัสพนักงานนี้มีในระบบแล้ว',
-        errorOccurred: 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง'
+        errorOccurred: 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง',
+        profileAssigned: 'ผูกโปรไฟล์สำเร็จ'
       }
     }
   },
@@ -67,7 +70,8 @@ const resources = {
         staffOperations: 'Staff Operations',
         bulkManagement: 'Bulk Management',
         displayBoard: 'Display Board',
-        kioskMode: 'Kiosk Mode'
+        kioskMode: 'Kiosk Mode',
+        manageProfiles: 'Manage Profiles'
       },
       theme: {
         dark: 'Dark Mode',
@@ -98,14 +102,16 @@ const resources = {
         userCode: 'User Code',
         userName: 'User Name',
         success: 'Success',
-        error: 'Error'
+        error: 'Error',
+        assignProfile: 'Assign Profile'
       },
       messages: {
         createSuccess: 'Account created successfully',
         updateSuccess: 'Information updated successfully',
         deleteSuccess: 'Account deleted successfully',
         userCodeExists: 'User Code already exists',
-        errorOccurred: 'An error occurred. Please try again.'
+        errorOccurred: 'An error occurred. Please try again.',
+        profileAssigned: 'Profile assigned successfully'
       }
     }
   }
