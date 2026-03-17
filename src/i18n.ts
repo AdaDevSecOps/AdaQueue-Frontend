@@ -36,8 +36,9 @@ const resources = {
         status: 'สถานะ',
         role: 'ระดับสิทธิ์',
         lastLogin: 'เข้าใช้ครั้งล่าสุด',
-        active: 'ปกติ',
-        deleted: 'โหมดลบ',
+        active: 'ใช้งาน',
+        inactive: 'ไม่ใช้งาน',
+        deleted: 'ลบ',
         all: 'ทั้งหมด',
         admin: 'ผู้ดูแลระบบ',
         staff: 'เจ้าหน้าที่',
@@ -56,6 +57,9 @@ const resources = {
         userCodeExists: 'รหัสพนักงานนี้มีในระบบแล้ว',
         errorOccurred: 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง',
         profileAssigned: 'ผูกโปรไฟล์สำเร็จ'
+      },
+      errors: {
+        accountSuspended: 'บัญชีของท่านถูกระงับการใช้งาน กรุณาติดต่อผู้ดูแลระบบ'
       }
     }
   },
@@ -93,6 +97,7 @@ const resources = {
         role: 'Role',
         lastLogin: 'Last Login',
         active: 'Active',
+        inactive: 'Inactive',
         deleted: 'Deleted',
         all: 'All',
         admin: 'Admin',
@@ -112,6 +117,9 @@ const resources = {
         userCodeExists: 'User Code already exists',
         errorOccurred: 'An error occurred. Please try again.',
         profileAssigned: 'Profile assigned successfully'
+      },
+      errors: {
+        accountSuspended: 'Your account has been suspended. Please contact admin.'
       }
     }
   }

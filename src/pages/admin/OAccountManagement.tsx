@@ -21,7 +21,7 @@ const OAccountManagement: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('ALL');
-  const [statusFilter, setStatusFilter] = useState('0'); // Default to Active
+  const [statusFilter, setStatusFilter] = useState('1'); // Default to Active (1)
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | undefined>();
@@ -78,7 +78,7 @@ const OAccountManagement: React.FC = () => {
   const handleSoftDelete = async (code: string) => {
     if (window.confirm(t('common.delete') + '?')) {
       try {
-        await axios.delete(apiPath(`/api/users/${code}`));
+        await axios.patch(apiPath(`/api/users/${code}`), { status: '3' });
         toast.success(t('messages.deleteSuccess'));
         fetchUsers();
       } catch (error) {
@@ -141,8 +141,8 @@ const OAccountManagement: React.FC = () => {
               className="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2 text-sm text-gray-600 dark:text-gray-200 focus:ring-2 focus:ring-blue-500 outline-none"
             >
               <option value="ALL">{t('common.all')}</option>
-              <option value="0">{t('common.active')}</option>
-              <option value="1">{t('common.deleted')}</option>
+              <option value="1">{t('common.active')}</option>
+              <option value="2">{t('common.inactive')}</option>
             </select>
           </div>
         </div>
@@ -172,7 +172,7 @@ const OAccountManagement: React.FC = () => {
                   </tr>
                 ) : (
                   filteredUsers.map((u) => (
-                    <tr key={u.code} className={`group hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${u.status === '1' ? 'opacity-60 grayscale' : ''}`}>
+                    <tr key={u.code} className={`group hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${u.status === '2' ? 'opacity-60 grayscale font-italic' : ''}`}>
                       <td className="px-6 py-4 font-mono font-bold text-gray-900 dark:text-white">{u.code}</td>
                       <td className="px-6 py-4 text-gray-700 dark:text-gray-300 font-medium">{u.name || '-'}</td>
                       <td className="px-6 py-4">
@@ -187,10 +187,11 @@ const OAccountManagement: React.FC = () => {
                         {u.lastLogin ? new Date(u.lastLogin).toLocaleString() : '-'}
                       </td>
                       <td className="px-6 py-4">
-                        <span className={`px-2 py-1 rounded-lg text-xs font-bold ${u.status === '0' ? 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400' :
-                          'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400'
+                        <span className={`px-2 py-1 rounded-lg text-xs font-bold ${u.status === '1' ? 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400' :
+                          u.status === '2' ? 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400' :
+                            'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400'
                           }`}>
-                          {u.status === '0' ? t('common.active') : t('common.deleted')}
+                          {u.status === '1' ? t('common.active') : u.status === '2' ? t('common.inactive') : t('common.deleted')}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-center space-x-2">
@@ -214,7 +215,7 @@ const OAccountManagement: React.FC = () => {
                         >
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
                         </button>
-                        {u.status === '0' && (
+                        {u.status !== '3' && (
                           <button
                             onClick={() => handleSoftDelete(u.code)}
                             className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-all"

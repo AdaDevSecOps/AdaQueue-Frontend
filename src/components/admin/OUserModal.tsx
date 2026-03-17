@@ -16,7 +16,7 @@ const OUserModal: React.FC<OUserModalProps> = ({ isOpen, onClose, onSave, user }
     name: '',
     role: 'STAFF',
     pin: '',
-    status: '0'
+    status: '1'
   });
   const [isResettingPin, setIsResettingPin] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -37,7 +37,7 @@ const OUserModal: React.FC<OUserModalProps> = ({ isOpen, onClose, onSave, user }
         name: '',
         role: 'STAFF',
         pin: '',
-        status: '0'
+        status: '1'
       });
     }
   }, [user, isOpen]);
@@ -129,8 +129,8 @@ const OUserModal: React.FC<OUserModalProps> = ({ isOpen, onClose, onSave, user }
                     onChange={(e) => setFormData({ ...formData, status: e.target.value })}
                     className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none dark:text-white"
                   >
-                    <option value="0">{t('common.active')}</option>
-                    <option value="1">{t('common.deleted')}</option>
+                    <option value="1">{t('common.active')}</option>
+                    <option value="2">{t('common.inactive')}</option>
                   </select>
                 </div>
               ) : (
