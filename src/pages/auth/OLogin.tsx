@@ -1,25 +1,25 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { LogIn, User, Lock, AlertCircle } from 'lucide-react';
+import { User, Lock, AlertCircle } from 'lucide-react';
 
 const OLogin: React.FC = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
-  const [employeeName, setEmployeeName] = useState('');
+  const [userName, setUserName] = useState('');
   const [pin, setPin] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!employeeName || pin.length !== 4) return;
+    if (!userName || pin.length !== 4) return;
 
     setLoading(true);
     setError(null);
 
     try {
-      const user = await login(employeeName, pin);
+      const user = await login(userName, pin);
       if (user) {
         if (user.role === 'ADMIN') {
           navigate('/admin/dashboard');
@@ -55,7 +55,7 @@ const OLogin: React.FC = () => {
           <form className="space-y-6" onSubmit={handleSubmit}>
             {/* Employee Name Field */}
             <div>
-              <label htmlFor="employeeName" className="block text-sm font-medium text-gray-300 mb-2">
+              <label htmlFor="userName" className="block text-sm font-medium text-gray-300 mb-2">
                 USERNAME
               </label>
               <div className="relative group">
@@ -63,13 +63,13 @@ const OLogin: React.FC = () => {
                   <User className="h-5 w-5 text-gray-500 group-focus-within:text-blue-500 transition-colors" />
                 </div>
                 <input
-                  id="employeeName"
+                  id="userName"
                   type="text"
                   required
                   autoComplete="off"
-                  value={employeeName}
+                  value={userName}
                   onChange={(e) => {
-                    setEmployeeName(e.target.value);
+                    setUserName(e.target.value);
                     setError(null);
                   }}
                   className="block w-full pl-10 pr-3 py-3 bg-[#1f2937] border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
@@ -118,9 +118,9 @@ const OLogin: React.FC = () => {
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={loading || !employeeName || pin.length !== 4}
+              disabled={loading || !userName || pin.length !== 4}
               className={`w-full h-12 rounded-xl font-bold text-lg transition-all flex items-center justify-center
-                ${loading || !employeeName || pin.length !== 4
+                ${loading || !userName || pin.length !== 4
                   ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
                   : 'bg-blue-600 hover:bg-blue-500 text-white shadow-xl shadow-blue-600/30'
                 }
@@ -136,14 +136,11 @@ const OLogin: React.FC = () => {
         </div>
       </div>
 
-      <div className="mt-8 text-center px-4">
-        <p className="text-xs text-gray-500 dark:text-gray-500">
-          Default PINs: admin (1234), staff (0000), kiosk (9999)
-        </p>
+      {/* <div className="mt-8 text-center px-4">
         <p className="text-xs text-gray-600 dark:text-gray-500">
           &copy; 2026 AdaQueue Management System. All rights reserved.
         </p>
-      </div>
+      </div> */}
     </div>
   );
 };

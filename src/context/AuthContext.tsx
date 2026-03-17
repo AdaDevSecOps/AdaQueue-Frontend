@@ -28,7 +28,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Check local storage for existing session
     const storedToken = localStorage.getItem('adaqueue_token');
     const storedUser = localStorage.getItem('adaqueue_user');
-    
+
     if (storedToken && storedUser) {
       setToken(storedToken);
       setUser(JSON.parse(storedUser));

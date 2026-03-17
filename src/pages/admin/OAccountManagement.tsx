@@ -158,7 +158,7 @@ const OAccountManagement: React.FC = () => {
                   <th className="px-6 py-4">{t('common.role')}</th>
                   <th className="px-6 py-4">{t('common.lastLogin')}</th>
                   <th className="px-6 py-4">{t('common.status')}</th>
-                  <th className="px-6 py-4 text-right">Actions</th>
+                  <th className="px-6 py-4 text-center">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
@@ -193,7 +193,7 @@ const OAccountManagement: React.FC = () => {
                           {u.status === '0' ? t('common.active') : t('common.deleted')}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-right space-x-2">
+                      <td className="px-6 py-4 text-center space-x-2">
                         <button
                           onClick={() => {
                             setSelectedUser(u);

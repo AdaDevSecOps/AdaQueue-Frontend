@@ -141,7 +141,7 @@ const OUserModal: React.FC<OUserModalProps> = ({ isOpen, onClose, onSave, user }
                     required
                     maxLength={4}
                     value={formData.pin}
-                    onChange={(e) => setFormData({ ...formData, pin: e.target.value })}
+                    onChange={(e) => setFormData({ ...formData, pin: e.target.value.replace(/\D/g, '') })}
                     className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none dark:text-white"
                     placeholder="4 digits"
                   />
@@ -158,7 +158,7 @@ const OUserModal: React.FC<OUserModalProps> = ({ isOpen, onClose, onSave, user }
                 required
                 maxLength={4}
                 value={formData.pin}
-                onChange={(e) => setFormData({ ...formData, pin: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, pin: e.target.value.replace(/\D/g, '') })}
                 className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none dark:text-white"
                 placeholder="4 digits"
               />
@@ -187,7 +187,7 @@ const OUserModal: React.FC<OUserModalProps> = ({ isOpen, onClose, onSave, user }
             </button>
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || (isResettingPin ? formData.pin.length !== 4 : (!user ? (!formData.code || !formData.name || formData.pin.length !== 4) : (!formData.code || !formData.name)))}
               className="flex-[2] px-2 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-md shadow-blue-500/20 font-bold transition-all disabled:opacity-50"
             >
               {isSubmitting ? '...' : t('common.save')}
