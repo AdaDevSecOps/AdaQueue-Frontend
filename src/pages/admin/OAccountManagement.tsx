@@ -186,8 +186,8 @@ const OAccountManagement: React.FC = () => {
                       <td className="px-6 py-4 font-mono font-bold text-gray-900 dark:text-white">{u.code}</td>
                       <td className="px-6 py-4 text-gray-700 dark:text-gray-300 font-medium">{u.name || '-'}</td>
                       <td className="px-6 py-4">
-                        <span className={`px-2 py-1 rounded-lg text-xs font-bold ${u.role === 'ADMIN' ? 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400' :
-                          u.role === 'STAFF' ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' :
+                        <span className={`px-2 py-1 rounded-lg text-xs font-bold ${u.role === 'ADMIN' ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400' :
+                          u.role === 'STAFF' ? 'bg-pink-100 text-pink-600 dark:bg-pink-900/30 dark:text-pink-400' :
                             'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400'
                           }`}>
                           {t(`common.${u.role.toLowerCase()}`)}
