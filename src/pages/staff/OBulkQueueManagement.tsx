@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Building2, Filter, LayoutGrid, Server, ArrowRight, AlertTriangle, Monitor } from 'lucide-react';
 import { apiPath } from '../../config/api';
+import { useAuth } from '../../context/AuthContext';
 
 
 // --- Interfaces (Mirrors OStaffOperations/OWorkflowDesigner) ---
@@ -94,6 +95,7 @@ const MOCK_LOGS: IActivityLog[] = [
 ];
 
 const OBulkQueueManagement: React.FC = () => {
+  const { user } = useAuth();
   const [startupStep, setStartupStep] = useState<'init' | 'select_profile' | 'select_point' | 'ready'>('init');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   // const [queues] = useState<IQueueItem[]>(MOCK_QUEUES); // Replaced by dynamic state
@@ -114,13 +116,30 @@ const OBulkQueueManagement: React.FC = () => {
   // --- Initialization ---
   useEffect(() => {
       const initStartup = async () => {
+          if (!user) return;
           try {
               const res = await fetch(apiPath('/api/profile'));
               if (res.ok) {
                   const contentType = res.headers.get("content-type");
                   if (contentType && contentType.indexOf("application/json") !== -1) {
                       const data = await res.json();
-                      const mapped = data.map((p: any) => ({ code: p.code, name: p.name, agnCode: p.agnCode }));
+                      let mapped = data.map((p: any) => ({ code: p.code, name: p.name, agnCode: p.agnCode }));
+                      
+                      // Filter by assigned profiles
+                      try {
+                          const assignedUrl = apiPath(`/api/users/${user.username}/profiles`);
+                          const assignedRes = await fetch(assignedUrl);
+                          if (assignedRes.ok) {
+                              const { profileCodes } = await assignedRes.json();
+                              if (profileCodes && Array.isArray(profileCodes)) {
+                                  mapped = mapped.filter((p: any) => profileCodes.includes(p.code));
+                                  console.log(`🔍 Filtered to ${mapped.length} assigned profiles for user ${user.username}`);
+                              }
+                          }
+                      } catch (assignError) {
+                          console.error('❌ Failed to fetch assigned profiles:', assignError);
+                      }
+
                       setProfiles(mapped);
                       
                       // Mandatory Two-Step Selection: Always start at select_profile
@@ -143,7 +162,7 @@ const OBulkQueueManagement: React.FC = () => {
           }
       };
       initStartup();
-  }, []);
+  }, [user]);
 
   const handleProfileSelect = async (profileId: string) => {
       setSelectedProfileId(profileId);

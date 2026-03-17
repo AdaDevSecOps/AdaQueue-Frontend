@@ -3,6 +3,7 @@ import { Monitor, Server, ArrowRight, CheckCircle2, AlertTriangle } from 'lucide
 import OQueueBoard from '../../components/queue/OQueueBoard';
 import { apiPath } from '../../config/api';
 import { io, Socket } from 'socket.io-client';
+import { useAuth } from '../../context/AuthContext';
 
 // --- Types ---
 interface IProfileOption {
@@ -40,6 +41,7 @@ interface IServicePoint {
 }
 
 const ODisplayBoard: React.FC = () => {
+  const { user } = useAuth();
   // --- State ---
   const [startupStep, setStartupStep] = useState<'init' | 'select_profile' | 'select_board' | 'ready'>('init');
   const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
@@ -60,8 +62,9 @@ const ODisplayBoard: React.FC = () => {
   // 1. Initial Startup Check
   useEffect(() => {
     const initStartup = async () => {
+      if (!user) return;
       // 1. Load Profiles first
-      const profiles = await loadProfiles();
+      const profiles = await loadProfiles(user.username);
 
       // Strict Mode: Mandatory Two-Step Selection (No Auto-Select)
       if (profiles.length > 0) {
@@ -69,7 +72,7 @@ const ODisplayBoard: React.FC = () => {
       }
     };
     initStartup();
-  }, []);
+  }, [user]);
 
   // Helper to check board step
   const checkBoardStep = async (profileId: string) => {
@@ -204,11 +207,11 @@ const ODisplayBoard: React.FC = () => {
       socket.off('queue:update', handler);
       socket.disconnect();
     };
-  }, [startupStep, selectedProfileId, selectedBoard]);
+  }, [startupStep, selectedProfileId, selectedBoard, servicePoints]);
 
   // --- Logic ---
 
-  const loadProfiles = async (): Promise<IProfileOption[]> => {
+  const loadProfiles = async (username?: string): Promise<IProfileOption[]> => {
     const url = apiPath('/api/profile');
     const startTime = performance.now();
 
@@ -240,12 +243,30 @@ const ODisplayBoard: React.FC = () => {
           console.log('📦 RESPONSE DATA:', data);
 
           // Map to IProfileOption
-          const profiles: IProfileOption[] = data.map((p: any) => ({
+          let profiles: IProfileOption[] = data.map((p: any) => ({
             code: p.code,
             name: p.name,
             agnCode: p.agnCode,
             description: p.name // Use name as description if not available
           }));
+
+          // Filter by assigned profiles if username provided
+          if (username) {
+            try {
+              const assignedUrl = apiPath(`/api/users/${username}/profiles`);
+              const assignedRes = await fetch(assignedUrl);
+              if (assignedRes.ok) {
+                const { profileCodes } = await assignedRes.json();
+                if (profileCodes && Array.isArray(profileCodes)) {
+                  profiles = profiles.filter((p: any) => profileCodes.includes(p.code));
+                  console.log(`🔍 Filtered to ${profiles.length} assigned profiles for user ${username}`);
+                }
+              }
+            } catch (assignError) {
+              console.error('❌ Failed to fetch assigned profiles:', assignError);
+            }
+          }
+
           setAvailableProfiles(profiles);
           console.log('✅ SUCCESS: Loaded', profiles.length, 'profiles');
           console.groupEnd();

@@ -6,6 +6,7 @@ import {
     Monitor, CheckSquare,
     ArrowRight, ClipboardList, Activity
 } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 
 // --- Type Definitions ---
 
@@ -92,6 +93,7 @@ const DEFAULT_PROFILES: IProfileOption[] = [];
 // --- Component ---
 
 const OWorkflowDesigner: React.FC = () => {
+    const { user } = useAuth();
     // --- State Management ---
     const [profiles, setProfiles] = useState<IProfileOption[]>([]);
 
@@ -122,6 +124,8 @@ const OWorkflowDesigner: React.FC = () => {
     // Fetch Profiles from Backend on Mount
     useEffect(() => {
         const fetchProfiles = async () => {
+            if (!user) return;
+
             const url = apiPath('/api/profile');
             const startTime = performance.now();
 
@@ -149,11 +153,10 @@ const OWorkflowDesigner: React.FC = () => {
                 if (res.ok) {
                     const data = await res.json();
                     console.log('📦 RESPONSE DATA:', data);
-                    console.log('✅ SUCCESS: Loaded', data.length, 'profiles');
                     console.groupEnd();
 
                     // Map backend entity to IProfileOption
-                    const mappedProfiles = data.map((p: any) => ({
+                    let mappedProfiles = data.map((p: any) => ({
                         code: p.code,
                         name: p.name,
                         agnCode: p.agnCode,
@@ -161,7 +164,28 @@ const OWorkflowDesigner: React.FC = () => {
                         description: p.config?.description || '',
                         config: p.config // Store full config
                     }));
+
+                    // Filter profiles based on Account Management assignments
+                    try {
+                        const assignedUrl = apiPath(`/api/users/${user.username}/profiles`);
+                        const assignedRes = await fetch(assignedUrl);
+                        if (assignedRes.ok) {
+                            const { profileCodes } = await assignedRes.json();
+                            // If user has specific profiles assigned, filter the list
+                            // If no profiles are assigned, we might show everything for ADMIN or nothing for others
+                            // But usually, empty assignment means no access.
+                            if (profileCodes && Array.isArray(profileCodes)) {
+                                mappedProfiles = mappedProfiles.filter((p: any) => profileCodes.includes(p.code));
+                                console.log(`🔍 Filtered to ${mappedProfiles.length} assigned profiles for user ${user.username}`);
+                            }
+                        }
+                    } catch (assignError) {
+                        console.error('❌ Failed to fetch assigned profiles:', assignError);
+                    }
+
+                    console.log('✅ SUCCESS: Loaded', mappedProfiles.length, 'profiles');
                     setProfiles(mappedProfiles);
+                    
                     if (mappedProfiles.length > 0 && !selectedProfileId) {
                         setSelectedProfileId(mappedProfiles[0].code);
                     }
@@ -175,7 +199,7 @@ const OWorkflowDesigner: React.FC = () => {
             }
         };
         fetchProfiles();
-    }, []);
+    }, [user]); // Re-fetch if user changes
 
     // Save selected profile ID and fetch data whenever selection changes
     useEffect(() => {

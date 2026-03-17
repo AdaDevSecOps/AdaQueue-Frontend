@@ -14,6 +14,7 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { apiPath } from '../../config/api';
+import { useAuth } from '../../context/AuthContext';
 
 
 // --- Interfaces from Workflow Designer ---
@@ -63,6 +64,7 @@ interface IWelcomeProps {
  * Dynamic Version: Loads configuration from LocalStorage based on Active Profile
  */
 const OWelcome: React.FC<IWelcomeProps> = ({ onSelectCategory }) => {
+  const { user } = useAuth();
   const [categories, setCategories] = useState<ICategory[]>([]);
   const [profileName, setProfileName] = useState<string>('AdaQueue');
   const [loading, setLoading] = useState<boolean>(true);
@@ -91,7 +93,7 @@ const OWelcome: React.FC<IWelcomeProps> = ({ onSelectCategory }) => {
   // --- Startup Logic ---
 
   // 1. Fetch Profiles
-  const loadProfiles = async (): Promise<IProfileOption[]> => {
+  const loadProfiles = async (username?: string): Promise<IProfileOption[]> => {
     const url = apiPath('/api/profile');
     const startTime = performance.now();
     let loaded: IProfileOption[] = [];
@@ -129,6 +131,24 @@ const OWelcome: React.FC<IWelcomeProps> = ({ onSelectCategory }) => {
                     agnCode: p.agnCode,
                     description: p.name
                 }));
+
+                // Filter by assigned profiles if username provided
+                if (username) {
+                    try {
+                        const assignedUrl = apiPath(`/api/users/${username}/profiles`);
+                        const assignedRes = await fetch(assignedUrl);
+                        if (assignedRes.ok) {
+                            const { profileCodes } = await assignedRes.json();
+                            if (profileCodes && Array.isArray(profileCodes)) {
+                                loaded = loaded.filter((p: any) => profileCodes.includes(p.code));
+                                console.log(`🔍 Filtered to ${loaded.length} assigned profiles for user ${username}`);
+                            }
+                        }
+                    } catch (assignError) {
+                        console.error('❌ Failed to fetch assigned profiles:', assignError);
+                    }
+                }
+
                 setAvailableProfiles(loaded);
                 console.log('✅ SUCCESS: Loaded', loaded.length, 'profiles');
                 console.groupEnd();
@@ -267,9 +287,10 @@ const OWelcome: React.FC<IWelcomeProps> = ({ onSelectCategory }) => {
   // 3. Initial Effect
   useEffect(() => {
     const initStartup = async () => {
+        if (!user) return;
         setLoading(true);
         try {
-            const profiles = await loadProfiles();
+            const profiles = await loadProfiles(user.username);
             
             // CHECK CUSTOMER SESSION
             const isCustomerSession = sessionStorage.getItem('adaqueue_customer_mode') === 'true';
@@ -300,7 +321,7 @@ const OWelcome: React.FC<IWelcomeProps> = ({ onSelectCategory }) => {
     };
 
     initStartup();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [user]);
 
   const handleKioskSelect = (kioskCode: string) => {
       setLoading(true);

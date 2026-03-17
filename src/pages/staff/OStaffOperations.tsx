@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Monitor, ArrowRight, AlertTriangle } from 'lucide-react';
 import { apiPath } from '../../config/api';
 import { io, Socket } from 'socket.io-client';
+import { useAuth } from '../../context/AuthContext';
 
 
 interface ITransition {
@@ -62,6 +63,7 @@ interface IProfileOption {
  * Path: c:\example\IDE\10.Project\2026\03.AdaQueue\docs\mockup\staff_queue_operations.png
  */
 const OStaffOperations: React.FC = () => {
+  const { user } = useAuth();
   // State
   const [currentQueue, setCurrentQueue] = useState<any | null>(null);
   const [selectedServiceGroup, setSelectedServiceGroup] = useState('ALL');
@@ -84,10 +86,11 @@ const OStaffOperations: React.FC = () => {
   // 1. Initial Startup Check
   useEffect(() => {
     const initStartup = async () => {
+      if (!user) return;
       setLoading(true);
 
       // 1. Load Profiles (Backend -> LS -> Mock)
-      const loadedProfiles = await loadProfiles();
+      const loadedProfiles = await loadProfiles(user.username);
       setProfiles(loadedProfiles);
 
       // Strict Mode: No LocalStorage Session Restore
@@ -104,11 +107,11 @@ const OStaffOperations: React.FC = () => {
     };
 
     initStartup();
-  }, []);
+  }, [user]);
 
   // --- Mock Helpers ---
   // In real app, these would be API calls
-  const loadProfiles = async (): Promise<IProfileOption[]> => {
+  const loadProfiles = async (username?: string): Promise<IProfileOption[]> => {
     const url = apiPath('/api/profile');
     const startTime = performance.now();
 
@@ -139,11 +142,29 @@ const OStaffOperations: React.FC = () => {
           const data = await res.json();
           console.log('📦 RESPONSE DATA:', data);
 
-          const profiles = data.map((p: any) => ({
+          let profiles = data.map((p: any) => ({
             code: p.code,
             name: p.name,
             description: p.name
           }));
+
+          // Filter by assigned profiles if username provided
+          if (username) {
+            try {
+              const assignedUrl = apiPath(`/api/users/${username}/profiles`);
+              const assignedRes = await fetch(assignedUrl);
+              if (assignedRes.ok) {
+                const { profileCodes } = await assignedRes.json();
+                if (profileCodes && Array.isArray(profileCodes)) {
+                  profiles = profiles.filter((p: any) => profileCodes.includes(p.code));
+                  console.log(`🔍 Filtered to ${profiles.length} assigned profiles for user ${username}`);
+                }
+              }
+            } catch (assignError) {
+              console.error('❌ Failed to fetch assigned profiles:', assignError);
+            }
+          }
+
           console.log('✅ SUCCESS: Loaded', profiles.length, 'profiles');
           console.groupEnd();
           return profiles;
@@ -357,7 +378,7 @@ const OStaffOperations: React.FC = () => {
       console.error('❌ ERROR:', e);
       console.groupEnd();
     }
-  }, [selectedProfile?.code, workflow?.serviceGroups]);
+  }, [selectedProfile?.code, workflow?.serviceGroups, workflow?.servicePoints, selectedPointCode]);
 
   // localStorage key unique to this staff session (profile + service point)
   const currentQueueStorageKey = selectedProfile?.code && selectedPointCode
@@ -451,7 +472,6 @@ const OStaffOperations: React.FC = () => {
     }
 
     // Auto-finish the current queue if eligible and we are doing a standard call next
-    let completedCurrentQueue = false;
     if (currentQueue && !selectedQueueDocNo && isAutoFinishEligible()) {
       console.groupCollapsed(`🟠 POST /api/staff/queue/finish (AUTO-FINISH)`);
       try {
@@ -463,7 +483,6 @@ const OStaffOperations: React.FC = () => {
         });
         if (res.ok) {
           console.log('✅ SUCCESS: Auto-finished current queue');
-          completedCurrentQueue = true;
           if (currentQueueStorageKey) {
             try { localStorage.removeItem(currentQueueStorageKey); } catch { }
           }
