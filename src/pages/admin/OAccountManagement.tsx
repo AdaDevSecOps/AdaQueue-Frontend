@@ -25,6 +25,9 @@ const OAccountManagement: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | undefined>();
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState('10'); // Default to 10
+
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -57,7 +60,14 @@ const OAccountManagement: React.FC = () => {
       result = result.filter(u => u.status === statusFilter);
     }
     setFilteredUsers(result);
+    setCurrentPage(1); // Reset to first page when filtering
   }, [users, searchTerm, roleFilter, statusFilter]);
+
+  const totalPages = itemsPerPage === 'ALL' ? 1 : Math.ceil(filteredUsers.length / parseInt(itemsPerPage));
+  const paginatedUsers = itemsPerPage === 'ALL'
+    ? filteredUsers
+    : filteredUsers.slice((currentPage - 1) * parseInt(itemsPerPage), currentPage * parseInt(itemsPerPage));
+
 
   const handleCreate = async (userData: any) => {
     await axios.post(apiPath('/api/users'), userData);
@@ -171,7 +181,7 @@ const OAccountManagement: React.FC = () => {
                     <td colSpan={6} className="px-6 py-12 text-center text-gray-500">No accounts found</td>
                   </tr>
                 ) : (
-                  filteredUsers.map((u) => (
+                  paginatedUsers.map((u) => (
                     <tr key={u.code} className={`group hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${u.status === '2' ? 'opacity-60 grayscale font-italic' : ''}`}>
                       <td className="px-6 py-4 font-mono font-bold text-gray-900 dark:text-white">{u.code}</td>
                       <td className="px-6 py-4 text-gray-700 dark:text-gray-300 font-medium">{u.name || '-'}</td>
@@ -230,6 +240,79 @@ const OAccountManagement: React.FC = () => {
                 )}
               </tbody>
             </table>
+          </div>
+
+          {/* Pagination Footer */}
+          <div className="bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 px-6 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div className="flex items-center gap-4">
+              <span className="text-sm text-gray-500 dark:text-gray-400">
+                {t('common.showing')} <span className="font-semibold text-gray-900 dark:text-white">{(currentPage - 1) * (itemsPerPage === 'ALL' ? 0 : parseInt(itemsPerPage)) + 1}</span> {t('common.to')} <span className="font-semibold text-gray-900 dark:text-white">{itemsPerPage === 'ALL' ? filteredUsers.length : Math.min(currentPage * parseInt(itemsPerPage), filteredUsers.length)}</span> {t('common.of')} <span className="font-semibold text-gray-900 dark:text-white">{filteredUsers.length}</span> {t('common.results')}
+              </span>
+
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-500 dark:text-gray-400">{t('common.itemsPerPage')}:</span>
+                <select
+                  value={itemsPerPage}
+                  onChange={(e) => {
+                    setItemsPerPage(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-1 text-xs text-gray-600 dark:text-gray-200 focus:ring-2 focus:ring-blue-500 outline-none"
+                >
+                  <option value="10">10</option>
+                  <option value="25">25</option>
+                  <option value="50">50</option>
+                  <option value="ALL">{t('common.all')}</option>
+                </select>
+              </div>
+            </div>
+
+            {itemsPerPage !== 'ALL' && totalPages > 1 && (
+              <div className="flex items-center bg-gray-50 dark:bg-gray-900/50 rounded-xl p-1 border border-gray-200 dark:border-gray-700">
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                  className="p-2 text-gray-500 hover:text-blue-600 disabled:opacity-30 disabled:pointer-events-none rounded-lg hover:bg-white dark:hover:bg-gray-800 transition-all"
+                  title={t('common.previous')}
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path></svg>
+                </button>
+
+                <div className="flex items-center px-2 gap-1">
+                  {[...Array(totalPages)].map((_, i) => {
+                    const page = i + 1;
+                    // Dynamic range logic for many pages
+                    if (totalPages > 7) {
+                      if (page !== 1 && page !== totalPages && (page < currentPage - 1 || page > currentPage + 1)) {
+                        if (page === currentPage - 2 || page === currentPage + 2) return <span key={page} className="px-2 text-gray-400">...</span>;
+                        return null;
+                      }
+                    }
+                    return (
+                      <button
+                        key={page}
+                        onClick={() => setCurrentPage(page)}
+                        className={`w-8 h-8 flex items-center justify-center rounded-lg text-sm font-bold transition-all ${currentPage === page
+                          ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
+                          : 'text-gray-500 hover:bg-white dark:hover:bg-gray-800 hover:text-blue-600'
+                          }`}
+                      >
+                        {page}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage === totalPages}
+                  className="p-2 text-gray-500 hover:text-blue-600 disabled:opacity-30 disabled:pointer-events-none rounded-lg hover:bg-white dark:hover:bg-gray-800 transition-all"
+                  title={t('common.next')}
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>

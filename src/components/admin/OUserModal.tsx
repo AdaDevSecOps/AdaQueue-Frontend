@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import axios from 'axios';
 import toast from 'react-hot-toast';
+import { apiPath } from '../../config/api';
 
 interface OUserModalProps {
   isOpen: boolean;
@@ -21,6 +23,15 @@ const OUserModal: React.FC<OUserModalProps> = ({ isOpen, onClose, onSave, user }
   const [isResettingPin, setIsResettingPin] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const fetchNextCode = async () => {
+    try {
+      const response = await axios.get(apiPath('/api/users/next-code'));
+      setFormData(prev => ({ ...prev, code: response.data.code }));
+    } catch (error) {
+      console.error('Failed to fetch next user code:', error);
+    }
+  };
+
   useEffect(() => {
     if (user) {
       setFormData({
@@ -39,6 +50,9 @@ const OUserModal: React.FC<OUserModalProps> = ({ isOpen, onClose, onSave, user }
         pin: '',
         status: '1'
       });
+      if (isOpen) {
+        fetchNextCode();
+      }
     }
   }, [user, isOpen]);
 
@@ -88,7 +102,7 @@ const OUserModal: React.FC<OUserModalProps> = ({ isOpen, onClose, onSave, user }
                 <input
                   type="text"
                   required
-                  disabled={!!user}
+                  disabled={true}
                   value={formData.code}
                   onChange={(e) => setFormData({ ...formData, code: e.target.value })}
                   className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none dark:text-white disabled:opacity-50"
@@ -101,9 +115,10 @@ const OUserModal: React.FC<OUserModalProps> = ({ isOpen, onClose, onSave, user }
                 <input
                   type="text"
                   required
+                  disabled={!!user}
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none dark:text-white"
+                  className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none dark:text-white disabled:opacity-50"
                   placeholder="e.g. John Doe"
                 />
               </div>

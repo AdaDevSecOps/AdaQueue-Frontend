@@ -48,7 +48,14 @@ const resources = {
         userName: 'ชื่อพนักงาน',
         success: 'ความสำเร็จ',
         error: 'เกิดข้อผิดพลาด',
-        assignProfile: 'ผูกโปรไฟล์'
+        assignProfile: 'ผูกโปรไฟล์',
+        showing: 'แสดง',
+        to: 'ถึง',
+        of: 'จากทั้งหมด',
+        results: 'รายการ',
+        previous: 'ก่อนหน้า',
+        next: 'ถัดไป',
+        itemsPerPage: 'รายการต่อหน้า'
       },
       messages: {
         createSuccess: 'สร้างบัญชีผู้ใช้สำเร็จ',
@@ -108,7 +115,14 @@ const resources = {
         userName: 'User Name',
         success: 'Success',
         error: 'Error',
-        assignProfile: 'Assign Profile'
+        assignProfile: 'Assign Profile',
+        showing: 'Showing',
+        to: 'to',
+        of: 'of',
+        results: 'results',
+        previous: 'Previous',
+        next: 'Next',
+        itemsPerPage: 'Items per page'
       },
       messages: {
         createSuccess: 'Account created successfully',
