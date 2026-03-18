@@ -149,7 +149,7 @@ const OQueueBoard: React.FC<IOQueueBoardProps> = ({ queues, title, leftTitle, di
                       NEXT
                     </span>
                   )}
-                  {!displayQueues[0].status.startsWith('WAIT') && displayQueues[0].counter && (
+                  {!displayQueues[0].status.startsWith('WAIT') && displayQueues[0].counter && displayQueues[0].counter !== '-' && (
                     <span className="text-gray-600 dark:text-gray-300 font-bold shrink-0">
                       {displayQueues[0].counter}
                     </span>
@@ -164,40 +164,40 @@ const OQueueBoard: React.FC<IOQueueBoardProps> = ({ queues, title, leftTitle, di
                   <div ref={contentRef} className={`flex flex-col gap-1.5 ${isOverflowing ? 'animate-marquee-up pb-4' : ''}`}>
                     {/* Render Remaining Queues */}
                     {displayQueues.slice(1).map((q, index) => (
-                      <div key={q.docNo} className={`flex justify-between items-center p-2 md:p-3 bg-white dark:bg-gray-800 rounded-lg border shrink-0 ${q.status.startsWith('WAIT') && index < 2 ? 'border-yellow-400 dark:border-yellow-500 shadow-md' : 'border-gray-200 dark:border-gray-700 shadow-sm'}`}>
+                      <div key={q.docNo} className="flex justify-between items-center p-2 md:p-3 bg-white dark:bg-gray-800 rounded-lg border shrink-0 border-gray-200 dark:border-gray-700 shadow-sm">
                         <div className="flex items-center gap-3">
-                          <span className={`text-lg md:text-2xl font-bold tracking-wider ${q.status.startsWith('WAIT') && index < 2 ? 'text-yellow-600 dark:text-yellow-400' : 'text-gray-700 dark:text-gray-200'}`}>
+                          <span className="text-lg md:text-2xl font-bold tracking-wider text-gray-700 dark:text-gray-200">
                             {q.ticketNo || q.queueNo}
                           </span>
-                          {q.status.startsWith('WAIT') && index === 0 && (
-                            <span className="px-2 py-0.5 bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300 text-[10px] md:text-xs font-bold rounded-full border border-yellow-200 dark:border-yellow-700">คิวที่ 2</span>
-                          )}
-                          {q.status.startsWith('WAIT') && index === 1 && (
-                            <span className="px-2 py-0.5 bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300 text-[10px] md:text-xs font-bold rounded-full border border-yellow-200 dark:border-yellow-700">คิวที่ 3</span>
-                          )}
                         </div>
-                        {!q.status.startsWith('WAIT') && q.counter && (
+                        {!q.status.startsWith('WAIT') && q.counter && q.counter !== '-' && (
                           <span className="text-gray-600 dark:text-gray-400 font-bold ml-2">
                             {q.counter}
                           </span>
                         )}
                       </div>
                     ))}
+
+                    {/* Visual gap/separator to indicate end of queue and looping */}
+                    {isOverflowing && (
+                      <div className="flex items-center justify-center py-4 opacity-40 shrink-0">
+                        <div className="h-px w-12 bg-gray-400 dark:bg-gray-500 rounded"></div>
+                        <span className="px-3 text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-widest uppercase">
+                          End of list
+                        </span>
+                        <div className="h-px w-12 bg-gray-400 dark:bg-gray-500 rounded"></div>
+                      </div>
+                    )}
+
                     {/* Duplicate for Marquee Layout if Overflowing */}
                     {isOverflowing && displayQueues.slice(1).map((q, index) => (
-                      <div key={q.docNo + "_dup"} className={`flex justify-between items-center p-2 md:p-3 bg-white dark:bg-gray-800 rounded-lg border shrink-0 ${q.status.startsWith('WAIT') && index < 2 ? 'border-yellow-400 dark:border-yellow-500 shadow-md' : 'border-gray-200 dark:border-gray-700 shadow-sm'}`}>
+                      <div key={q.docNo + "_dup"} className="flex justify-between items-center p-2 md:p-3 bg-white dark:bg-gray-800 rounded-lg border shrink-0 border-gray-200 dark:border-gray-700 shadow-sm">
                         <div className="flex items-center gap-3">
-                          <span className={`text-lg md:text-2xl font-bold tracking-wider ${q.status.startsWith('WAIT') && index < 2 ? 'text-yellow-600 dark:text-yellow-400' : 'text-gray-700 dark:text-gray-200'}`}>
+                          <span className="text-lg md:text-2xl font-bold tracking-wider text-gray-700 dark:text-gray-200">
                             {q.ticketNo || q.queueNo}
                           </span>
-                          {q.status.startsWith('WAIT') && index === 0 && (
-                            <span className="px-2 py-0.5 bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300 text-[10px] md:text-xs font-bold rounded-full border border-yellow-200 dark:border-yellow-700">คิวที่ 2</span>
-                          )}
-                          {q.status.startsWith('WAIT') && index === 1 && (
-                            <span className="px-2 py-0.5 bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300 text-[10px] md:text-xs font-bold rounded-full border border-yellow-200 dark:border-yellow-700">คิวที่ 3</span>
-                          )}
                         </div>
-                        {!q.status.startsWith('WAIT') && q.counter && (
+                        {!q.status.startsWith('WAIT') && q.counter && q.counter !== '-' && (
                           <span className="text-gray-600 dark:text-gray-400 font-bold ml-2">
                             {q.counter}
                           </span>
