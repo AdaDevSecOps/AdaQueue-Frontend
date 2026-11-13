@@ -1,3 +1,4 @@
+import { apiFetch as fetch } from '../../config/api';
 import React, { useState, useEffect } from 'react';
 import { apiPath } from '../../config/api';
 import { 

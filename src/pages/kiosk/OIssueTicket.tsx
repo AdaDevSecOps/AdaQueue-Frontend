@@ -1,3 +1,4 @@
+import { apiFetch as fetch } from '../../config/api';
 import React, { useState, useEffect } from 'react';
 import { apiPath } from '../../config/api';
 
@@ -12,6 +13,7 @@ interface IKioskDefinition {
   name: string;
 }
 interface IWorkflowDefinition {
+  industry?: string;
   profileName?: string;
   serviceGroups: IServiceGroup[];
   kiosks?: IKioskDefinition[];
@@ -39,6 +41,7 @@ export const OIssueTicket: React.FC<IIssueTicketProps> = ({ category, onConfirm,
   // Config State
   const [headerTitle, setHeaderTitle] = useState('AdaQueue');
   const [categoryName, setCategoryName] = useState(category);
+  const [industry,setIndustry] = useState('BANK');
 
   // Load Configuration
   useEffect(() => {
@@ -48,6 +51,7 @@ export const OIssueTicket: React.FC<IIssueTicketProps> = ({ category, onConfirm,
             const workflowJson = localStorage.getItem(`adaqueue_workflow_${activeProfileId}`);
             if (workflowJson) {
                 const workflow: IWorkflowDefinition = JSON.parse(workflowJson);
+                setIndustry(workflow.industry || 'BANK');
                 
                 // 1. Resolve Header Title (Kiosk Title > Profile Name > AdaQueue)
                 let title = workflow.profileName || 'AdaQueue';
@@ -132,7 +136,7 @@ export const OIssueTicket: React.FC<IIssueTicketProps> = ({ category, onConfirm,
       const payload = {
         customerName: phone ? `Phone:${phone}` : 'Walk-in',
         tel: phone || '',
-        industry: 'BANK',
+        industry,
         agnCode,
         profileId,
         attributes: { pax, category, serviceGroup: category, queueType: category, kioskCode },

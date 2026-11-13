@@ -1,3 +1,4 @@
+import { apiFetch as fetch } from '../../config/api';
 import React, { useState, useEffect } from 'react';
 import { Monitor, Server, ArrowRight, CheckCircle2, AlertTriangle } from 'lucide-react';
 import OQueueBoard from '../../components/queue/OQueueBoard';
@@ -114,7 +115,9 @@ const ODisplayBoard: React.FC = () => {
                   }
 
                   // Use docNo directly without formatting
-                  const label = q.docNo;
+                  const label = q.refType === 'KIOSK_TRIAL'
+                    ? `K${String(q.queueNo).padStart(3, '0')}`
+                    : q.refType === 'QR_ORDER' ? `PICKUP-${String(q.queueNo).padStart(3,'0')}` : q.docNo;
 
                   // Use queueType from response directly
                   const serviceGroup = q.queueType || 'General';

@@ -39,8 +39,7 @@ const OLogin: React.FC = () => {
            navigate('/admin/dashboard');
         } else if (user.role === 'STAFF') {
            navigate('/staff/control');
-        } else if (user.role === 'KIOSK') {
-           navigate('/kiosk');
+
         } else {
            navigate('/');
         }
@@ -142,7 +141,7 @@ const OLogin: React.FC = () => {
         
         <div className="mt-6 text-center">
             <p className="text-xs text-gray-500 dark:text-gray-500">
-                Default PINs: Admin (1234), Staff (0000), Kiosk (9999)
+                ใช้ PIN ผู้ใช้ KDS ที่ทีมกำหนด
             </p>
         </div>
 

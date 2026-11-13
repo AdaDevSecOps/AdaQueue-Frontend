@@ -21,11 +21,12 @@ import './i18n';
 import MainLayout from './layouts/MainLayout';
 
 // --- Protected Route Component ---
-const RequireAuth: React.FC = () => {
-  const { token, isLoading } = useAuth();
+const RequireAuth: React.FC<{ admin?: boolean }> = ({ admin }) => {
+  const { token, user, isLoading } = useAuth();
   
   if (isLoading) return <div className="flex h-screen items-center justify-center">Loading...</div>;
   
+  if (token && admin && user?.role !== 'ADMIN') return <Navigate to="/staff/control" replace />;
   return token ? <Outlet /> : <Navigate to="/" replace />;
 };
 
@@ -86,14 +87,16 @@ const App: React.FC = () => {
             <Route path="/board" element={<ODisplayBoard />} />
             
             {/* Staff Only Routes (Direct Access) */}
-            <Route path="/staff-direct" element={<OStaffOperations />} />
+            <Route element={<RequireAuth />}><Route path="/staff-direct" element={<OStaffOperations />} /></Route>
 
             {/* Protected Admin/Staff Routes with Layout */}
             <Route element={<RequireAuth />}>
                 <Route element={<MainLayout />}>
+                    <Route element={<RequireAuth admin />}>
                     <Route path="/admin/dashboard" element={<ODashboard />} />
                     <Route path="/admin/reports" element={<OStaffPerformanceReport />} />
                     <Route path="/admin/workflow" element={<OWorkflowDesigner />} />
+                    </Route>
                     <Route path="/staff/control" element={<StaffControlPage />} />
                     <Route path="/staff/operations" element={<OStaffOperations />} />
                     <Route path="/staff/bulk-management" element={<OBulkQueueManagement />} />

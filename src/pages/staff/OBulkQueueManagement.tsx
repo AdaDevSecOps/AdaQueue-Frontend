@@ -1,3 +1,4 @@
+import { apiFetch as fetch } from '../../config/api';
 import React, { useState, useEffect } from 'react';
 import { Building2, Filter, LayoutGrid, Server, ArrowRight, AlertTriangle, Monitor } from 'lucide-react';
 import { apiPath } from '../../config/api';
